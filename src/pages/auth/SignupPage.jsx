@@ -81,16 +81,16 @@ export const SignupPage = () => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-[#051348] via-[#0A1F66] to-[#071B63] relative overflow-hidden"
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-[#0F225A] via-[#142C6F] to-[#1B3679] relative overflow-hidden"
     >
       {/* Background Decorative Mesh Glows */}
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-400/15 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-12 gap-0 bg-white/95 backdrop-blur-xl border border-white/20 rounded-3xl overflow-hidden shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-200">
 
         {/* Left Side: Brand Story & Security Pillars */}
-        <div className="md:col-span-5 bg-gradient-to-br from-[#061654] via-[#0A1F66] to-[#071B63] p-6 sm:p-10 text-white flex flex-col justify-between space-y-6 relative overflow-hidden">
+        <div className="md:col-span-5 bg-gradient-to-br from-[#0F225A] via-[#142C6F] to-[#1B3679] p-6 sm:p-10 text-white flex flex-col justify-between space-y-6 relative overflow-hidden">
           
           <div className="space-y-5 relative z-10">
             {/* Logo */}

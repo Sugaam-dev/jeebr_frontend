@@ -1,31 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import { 
   Menu, 
-  Bell, 
+  Search, 
   Calendar, 
   ChevronDown, 
+  Bell, 
   LogOut, 
   CheckCircle2, 
-  Search, 
   ShieldAlert, 
   Radio, 
   UserMinus, 
   IndianRupee, 
-  X, 
-  CheckCheck, 
-  ArrowRight
+  CheckCheck
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
 import logoImg from '../../assets/logo_pmrg.png';
 
-export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, onOpen360Global }) => {
+export const Navbar = ({ 
+  onToggleSidebar, 
+  sidebarCollapsed, 
+  onToggleMobileMenu, 
+  onOpen360Global,
+  onDateRangeChange
+}) => {
   const { user, demoLogin, logout } = useAuth();
   const navigate = useNavigate();
-  const [dateRange, setDateRange] = useState('Last 30 Days');
+
+  const [dateRange, setDateRange] = useState('Today');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeFilter, setActiveFilter] = useState('ALL');
+  const [filterToast, setFilterToast] = useState('');
+
   const [notifications, setNotifications] = useState([
     {
       id: 'notif-gov-1',
@@ -114,6 +122,29 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
     { label: 'Admin', role: 'Admin' },
   ];
 
+  const dateOptions = [
+    'Today',
+    'Last 7 Days',
+    'Last 30 Days',
+    'This Quarter',
+    'Custom Range...'
+  ];
+
+  const handleSelectDateRange = (range) => {
+    setDateRange(range);
+    setShowDatePicker(false);
+    api.clearCache();
+    
+    // Dispatch global event for active page telemetry reload
+    window.dispatchEvent(new CustomEvent('date-range-change', { detail: { range } }));
+    if (onDateRangeChange) {
+      onDateRangeChange(range);
+    }
+
+    setFilterToast(`Telemetry filtered: ${range}`);
+    setTimeout(() => setFilterToast(''), 3000);
+  };
+
   const getInitials = (name) => {
     if (!name) return 'SO';
     const parts = name.split(' ');
@@ -155,8 +186,17 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
   };
 
   return (
-    <header className="h-16 bg-[#0A1F66] border-b border-[#152D75] flex items-center justify-between px-3 sm:px-5 lg:px-6 sticky top-0 z-30 select-none text-white shadow-sm">
-      {/* Left: Hamburger & Branding & Search */}
+    <header className="h-16 bg-[#142C6F] border-b border-[#1B3679] flex items-center justify-between px-3 sm:px-5 lg:px-6 sticky top-0 z-30 select-none text-white shadow-sm transition-colors">
+      
+      {/* Toast feedback for filter change */}
+      {filterToast && (
+        <div className="absolute top-18 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2 rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150 flex items-center gap-2 font-medium">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          <span>{filterToast}</span>
+        </div>
+      )}
+
+      {/* Left: Single Hamburger & Search */}
       <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 max-w-xl">
         {/* Mobile Hamburger Drawer Trigger */}
         <button
@@ -173,7 +213,7 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
           <span className="font-bold text-sm text-white tracking-tight">SentinelOS</span>
         </div>
 
-        {/* Desktop Collapse Trigger */}
+        {/* Desktop Single Hamburger Trigger */}
         <button
           onClick={onToggleSidebar}
           title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -185,7 +225,7 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
         {/* Search Bar matching Reference */}
         <button
           onClick={handleSearchClick}
-          className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[#071B63]/80 border border-[#152D75] hover:border-blue-500/40 text-xs text-blue-200/70 hover:text-blue-100 transition-all cursor-pointer w-full max-w-sm sm:max-w-md group shadow-inner"
+          className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[#0F225A]/80 border border-[#1B3679] hover:border-blue-400/50 text-xs text-blue-200/80 hover:text-blue-100 transition-all cursor-pointer w-full max-w-sm sm:max-w-md group shadow-inner"
           title="Press Ctrl+K or Cmd+K to search subscribers, models, policies"
         >
           <Search className="w-3.5 h-3.5 text-blue-300 group-hover:text-blue-200 shrink-0" />
@@ -193,43 +233,35 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
             Search models, policies, subscribers...
           </span>
           <kbd className="hidden md:inline-block text-[9.5px] bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-blue-200 font-mono">
-            ⌘K
+            Ctrl+K
           </kbd>
         </button>
       </div>
 
-      {/* Right Controls */}
-      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        {/* Mobile Search Icon Trigger */}
-        <button
-          onClick={handleSearchClick}
-          title="Search"
-          className="sm:hidden p-1.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-        >
-          <Search className="w-4 h-4" />
-        </button>
-
-        {/* Date Filter Dropdown */}
+      {/* Right: Date Filter & Role Switcher & Notifications & User */}
+      <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+        
+        {/* Working Date Range Filter Dropdown */}
         <div className="relative" ref={datePickerRef}>
           <button
             onClick={() => setShowDatePicker(!showDatePicker)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-blue-100 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#0F225A]/80 border border-[#1B3679] hover:bg-[#183685] hover:border-blue-400/50 text-xs text-blue-100 font-medium transition-all cursor-pointer shadow-inner"
           >
-            <Calendar className="w-3.5 h-3.5 text-blue-300 shrink-0" />
-            <span className="hidden md:inline text-[11.5px]">{dateRange}</span>
-            <ChevronDown className="w-3 h-3 text-blue-300/80 shrink-0" />
+            <Calendar className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+            <span className="text-[11.5px] hidden sm:inline">{dateRange}</span>
+            <ChevronDown className={`w-3 h-3 text-blue-200/70 transition-transform ${showDatePicker ? 'rotate-180' : ''}`} />
           </button>
 
           {showDatePicker && (
-            <div className="absolute right-0 mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 text-xs text-gray-800 animate-in fade-in zoom-in-95 duration-100">
-              {['Today', 'Last 7 Days', 'Last 30 Days', 'This Quarter', 'Custom Range...'].map((range) => (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 text-xs z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                Filter Telemetry Range
+              </div>
+              {dateOptions.map((range) => (
                 <button
                   key={range}
-                  onClick={() => {
-                    setDateRange(range);
-                    setShowDatePicker(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between cursor-pointer ${
+                  onClick={() => handleSelectDateRange(range)}
+                  className={`w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between cursor-pointer transition-colors ${
                     dateRange === range ? 'text-blue-600 font-semibold bg-blue-50/60' : 'text-gray-700'
                   }`}
                 >
@@ -242,7 +274,7 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
         </div>
 
         {/* Role Switcher Pills */}
-        <div className="hidden xl:flex items-center bg-[#071B63]/90 p-1 rounded-lg border border-[#152D75] text-xs">
+        <div className="hidden xl:flex items-center bg-[#0F225A]/90 p-1 rounded-xl border border-[#1B3679] text-xs">
           <span className="text-[9.5px] font-bold text-blue-300/60 px-2 uppercase tracking-wider">Role</span>
           {demoRoles.map((r) => {
             const isActive = user?.role === r.role;
@@ -250,9 +282,9 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
               <button
                 key={r.role}
                 onClick={() => demoLogin(r.role)}
-                className={`px-2.5 py-0.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-[#2463EB] text-white shadow-xs font-semibold'
+                    ? 'bg-[#2563EB] text-white shadow-xs font-semibold'
                     : 'text-blue-200/70 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -267,13 +299,13 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             title={`${unreadCount} unread alerts`}
-            className={`relative p-1.5 sm:p-2 rounded-lg transition-colors cursor-pointer ${
+            className={`relative p-1.5 sm:p-2 rounded-xl transition-colors cursor-pointer ${
               showNotifications ? 'bg-white/15 text-white' : 'text-blue-200 hover:text-white hover:bg-white/10'
             }`}
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 min-w-[14px] h-[14px] px-0.5 rounded-full bg-rose-500 text-white text-[8.5px] font-bold flex items-center justify-center ring-2 ring-[#0A1F66]">
+              <span className="absolute top-1 right-1 min-w-[14px] h-[14px] px-0.5 rounded-full bg-rose-500 text-white text-[8.5px] font-bold flex items-center justify-center ring-2 ring-[#142C6F]">
                 {unreadCount}
               </span>
             )}
@@ -308,16 +340,17 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
                 {[
                   { key: 'ALL', label: 'All' },
                   { key: 'UNREAD', label: `Unread (${unreadCount})` },
-                  { key: 'approval', label: 'Approvals' },
+                  { key: 'approval', label: 'Sign-offs' },
                   { key: 'network', label: 'Network' },
-                  { key: 'churn', label: 'Churn' }
-                ].map(f => (
+                  { key: 'churn', label: 'Churn' },
+                  { key: 'revenue', label: 'Revenue' }
+                ].map((f) => (
                   <button
                     key={f.key}
                     onClick={() => setActiveFilter(f.key)}
-                    className={`px-2.5 py-1 rounded-lg text-[10.5px] font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer shrink-0 ${
                       activeFilter === f.key
-                        ? 'bg-blue-600 text-white font-semibold'
+                        ? 'bg-blue-600 text-white font-semibold shadow-xs'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
@@ -326,76 +359,49 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
                 ))}
               </div>
 
-              {/* Items List */}
-              <div className="max-h-72 sm:max-h-80 overflow-y-auto divide-y divide-gray-100">
+              {/* List */}
+              <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
                 {filteredNotifications.length === 0 ? (
-                  <div className="p-8 text-center text-gray-400 space-y-1">
-                    <CheckCircle2 className="w-7 h-7 mx-auto text-emerald-500/60 mb-2" />
-                    <p className="font-semibold text-gray-700 text-xs">All clear</p>
-                    <p className="text-[11px] text-gray-400">No unread notifications at this time.</p>
+                  <div className="p-6 text-center text-gray-500">
+                    <p className="font-medium text-xs">No notifications in this filter</p>
                   </div>
                 ) : (
-                  filteredNotifications.map(n => {
-                    const Icon = n.icon;
+                  filteredNotifications.map((item) => {
+                    const Icon = item.icon;
                     return (
                       <div
-                        key={n.id}
-                        onClick={() => handleNotificationClick(n)}
-                        className={`p-3 hover:bg-blue-50/40 transition-colors cursor-pointer flex items-start gap-3 relative group ${
-                          n.unread ? 'bg-blue-50/30' : 'bg-white'
+                        key={item.id}
+                        onClick={() => handleNotificationClick(item)}
+                        className={`p-3.5 hover:bg-blue-50/50 transition-colors flex items-start gap-3 cursor-pointer group ${
+                          item.unread ? 'bg-blue-50/20' : ''
                         }`}
                       >
-                        <div className={`p-1.5 rounded-lg border shrink-0 ${n.color}`}>
-                          <Icon className="w-3.5 h-3.5" />
+                        <div className={`p-2 rounded-xl shrink-0 border ${item.color}`}>
+                          <Icon className="w-4 h-4" />
                         </div>
-
-                        <div className="flex-1 min-w-0 pr-4">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
-                            <h4 className={`text-xs font-semibold truncate ${n.unread ? 'text-gray-900 font-bold' : 'text-gray-700'}`}>
-                              {n.title}
-                            </h4>
-                            <span className="text-[9.5px] text-gray-400 font-mono whitespace-nowrap">{n.time}</span>
+                            <span className="font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                              {item.title}
+                            </span>
+                            <span className="text-[10px] text-gray-400 shrink-0 font-mono">
+                              {item.time}
+                            </span>
                           </div>
-                          <p className="text-[11px] text-gray-500 line-clamp-2 mt-0.5 leading-snug">
-                            {n.description}
+                          <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                            {item.description}
                           </p>
-                          <div className="mt-1.5 flex items-center gap-1 text-[10.5px] text-blue-600 font-semibold group-hover:translate-x-0.5 transition-transform">
-                            <span>Open view</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </div>
                         </div>
-
-                        <button
-                          onClick={(e) => dismissNotification(e, n.id)}
-                          title="Dismiss notification"
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-opacity absolute top-2.5 right-2 cursor-pointer"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     );
                   })
                 )}
               </div>
-
-              {/* Popover Footer */}
-              <div className="p-2.5 bg-slate-50 border-t border-gray-100 flex items-center justify-between text-[11px]">
-                <span className="text-gray-500">Autonomous telemetry</span>
-                <button
-                  onClick={() => {
-                    setShowNotifications(false);
-                    navigate('/governance');
-                  }}
-                  className="text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
-                >
-                  Governance Queue &rarr;
-                </button>
-              </div>
             </div>
           )}
         </div>
 
-        {/* User Avatar + Name */}
+        {/* User Profile & Sign Out */}
         {user && (
           <div className="flex items-center gap-2 sm:gap-2.5 pl-1">
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-blue-500 via-indigo-500 to-cyan-400 text-white font-bold text-xs flex items-center justify-center shadow-xs ring-1 ring-white/20 shrink-0">
@@ -406,7 +412,7 @@ export const Navbar = ({ onToggleSidebar, sidebarCollapsed, onToggleMobileMenu, 
               <div className="text-xs font-semibold text-white leading-tight truncate max-w-[110px]">
                 {user.full_name}
               </div>
-              <div className="text-[10px] text-blue-200/60 leading-tight mt-0.5">
+              <div className="text-[10px] text-blue-200/70 leading-tight mt-0.5">
                 {user.role}
               </div>
             </div>

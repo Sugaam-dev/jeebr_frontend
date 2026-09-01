@@ -9,7 +9,6 @@ import {
   IndianRupee,
   ShieldAlert,
   Search,
-  Menu,
   Sparkles,
   X
 } from 'lucide-react';
@@ -62,15 +61,15 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
       {isMobileOpen && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-[#040E36]/70 backdrop-blur-xs z-40 md:hidden transition-opacity"
+          className="fixed inset-0 bg-[#0F172A]/70 backdrop-blur-xs z-40 md:hidden transition-opacity"
           aria-hidden="true"
         />
       )}
 
       <aside
         className={`
-          bg-[#071B63] border-r border-[#152D75] flex flex-col h-screen shrink-0 overflow-hidden 
-          sidebar-transition select-none text-slate-200 z-50
+          bg-[#0F225A] border-r border-[#1B3679] flex flex-col h-screen shrink-0 overflow-hidden 
+          sidebar-transition select-none text-slate-100 z-50 shadow-md
           ${isMobileOpen 
             ? 'fixed inset-y-0 left-0 translate-x-0 shadow-2xl w-64' 
             : 'sticky top-0 hidden md:flex'
@@ -78,8 +77,8 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
         `}
         style={{ width: isMobileOpen ? '16.5rem' : collapsed ? '4.5rem' : '16rem' }}
       >
-        {/* Top Brand / Logo Header with SentinelOS Name & Hamburger Toggle */}
-        <div className="h-16 border-b border-[#152D75] flex items-center px-3 shrink-0 bg-[#061654] justify-between gap-1.5">
+        {/* Top Brand / Logo Header with SentinelOS Name (Sidebar hamburger removed) */}
+        <div className="h-16 border-b border-[#1B3679] flex items-center px-3.5 shrink-0 bg-[#0C1B4A] justify-between">
           <div 
             onClick={() => handleNavigate('cockpit')}
             className={`flex items-center cursor-pointer py-1 min-w-0 ${collapsed && !isMobileOpen ? 'justify-center w-full' : 'justify-start gap-2.5 flex-1'}`}
@@ -106,25 +105,14 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
                     v1.0
                   </span>
                 </div>
-                <span className="text-[9px] text-blue-200/60 font-medium tracking-tight truncate mt-0.5">
+                <span className="text-[9px] text-blue-200/70 font-medium tracking-tight truncate mt-0.5">
                   AI Governance Platform
                 </span>
               </div>
             )}
           </div>
 
-          {/* Top Hamburger Toggle Button on Desktop */}
-          {onToggle && !isMobileOpen && (
-            <button
-              onClick={() => onToggle(!collapsed)}
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="p-1.5 rounded-lg text-blue-200/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0 hidden md:flex items-center justify-center"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Close button on mobile */}
+          {/* Close button on mobile only */}
           {isMobileOpen && (
             <button
               onClick={onCloseMobile}
@@ -141,11 +129,11 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
             <div key={sec.title} className="space-y-1">
               {/* Section Header */}
               {!collapsed || isMobileOpen ? (
-                <div className="px-3 text-[9.5px] font-bold uppercase tracking-wider text-blue-200/50 py-1">
+                <div className="px-3 text-[9.5px] font-bold uppercase tracking-wider text-blue-200/60 py-1">
                   {sec.title}
                 </div>
               ) : (
-                <div className="w-6 h-px bg-[#152D75] mx-auto my-2" />
+                <div className="w-6 h-px bg-[#1B3679] mx-auto my-2" />
               )}
 
               {/* Nav Items */}
@@ -160,19 +148,19 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
                       onClick={() => handleNavigate(item.id)}
                       title={collapsed && !isMobileOpen ? item.label : undefined}
                       className={`
-                        w-full flex items-center gap-3 py-2 rounded-lg text-left
+                        w-full flex items-center gap-3 py-2 rounded-xl text-left
                         transition-all duration-150 group font-medium text-xs cursor-pointer
                         ${collapsed && !isMobileOpen ? 'justify-center px-2' : 'px-3'}
                         ${
                           isActive
-                            ? 'bg-[#2463EB] text-white shadow-sm font-semibold ring-1 ring-white/20'
-                            : 'text-blue-100/75 hover:bg-[#102B75] hover:text-white'
+                            ? 'bg-[#2563EB] text-white shadow-md font-semibold ring-1 ring-white/20'
+                            : 'text-blue-100/80 hover:bg-[#183685] hover:text-white'
                         }
                       `}
                     >
                       <Icon
                         className={`w-4 h-4 shrink-0 transition-colors ${
-                          isActive ? 'text-white' : 'text-blue-200/60 group-hover:text-white'
+                          isActive ? 'text-white' : 'text-blue-200/70 group-hover:text-white'
                         }`}
                       />
                       {(!collapsed || isMobileOpen) && (
@@ -180,7 +168,7 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
                           <div className="truncate leading-tight">{item.label}</div>
                           <div
                             className={`text-[9.5px] truncate leading-tight mt-0.5 ${
-                              isActive ? 'text-blue-100' : 'text-blue-200/40'
+                              isActive ? 'text-blue-100' : 'text-blue-200/50'
                             }`}
                           >
                             {item.subtitle}
