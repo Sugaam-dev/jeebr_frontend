@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { CheckCircle2, ShieldCheck, XCircle, RefreshCw, Lock, ChevronDown, ChevronUp, ShieldAlert, Sparkles } from 'lucide-react';
+import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { CheckCircle2, ShieldCheck, XCircle, RefreshCw, Lock, ChevronDown, ChevronUp } from 'lucide-react';
 
 const MODULE_ROLE_MAP = {
   "Predictive Service Assurance": ["NOC", "Admin"],
@@ -11,7 +11,7 @@ const MODULE_ROLE_MAP = {
   "Revenue Assurance & Leakage Analytics": ["Revenue", "Admin"]
 };
 
-export const GovernanceAudit = ({ onOpen360 }) => {
+export const GovernanceAudit = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('queue');
   const [recommendations, setRecommendations] = useState([]);
@@ -92,11 +92,11 @@ export const GovernanceAudit = ({ onOpen360 }) => {
   ];
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Cross-cutting governance layer</div>
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#2463EB]">Cross-Cutting Governance Layer</div>
           <h1 className="text-xl font-bold text-gray-900 mt-1">
             Human-in-the-Loop Governance &amp; Immutable Audit Trail
           </h1>
@@ -105,28 +105,28 @@ export const GovernanceAudit = ({ onOpen360 }) => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
           <button
             onClick={() => loadData(true)}
             disabled={loading || refreshing}
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-60"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-[#2463EB]' : ''}`} />
             <span>{refreshing ? 'Refreshing...' : 'Refresh Logs'}</span>
           </button>
 
           {/* Tab Toggle — segmented control */}
           <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
             {[
-              { key: 'queue', label: `Approval queue (${recommendations.filter(r => r.status === 'PENDING').length})` },
-              { key: 'audit', label: `Audit trail (${auditLogs.length})` }
+              { key: 'queue', label: `Approval Queue (${recommendations.filter(r => r.status === 'PENDING').length})` },
+              { key: 'audit', label: `Audit Trail (${auditLogs.length})` }
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === tab.key
-                    ? 'bg-white text-blue-600 shadow-xs'
+                    ? 'bg-white text-[#2463EB] shadow-xs'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -153,12 +153,12 @@ export const GovernanceAudit = ({ onOpen360 }) => {
       )}
 
       {/* Filter Row */}
-      <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-xl p-4 card-shadow text-xs">
+      <div className="flex flex-wrap items-center gap-3 bg-white border border-[#E2E8F0] rounded-xl p-4 card-shadow text-xs">
         <span className="text-gray-600 font-semibold">Filter by module:</span>
         <select
           value={moduleFilter}
           onChange={(e) => setModuleFilter(e.target.value)}
-          className="px-3.5 py-2 rounded-lg bg-slate-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-medium"
+          className="px-3.5 py-2 rounded-lg bg-slate-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-medium"
         >
           <option value="">All 5 Modules</option>
           {modules.map((m) => (
@@ -172,7 +172,7 @@ export const GovernanceAudit = ({ onOpen360 }) => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3.5 py-2 rounded-lg bg-slate-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-medium"
+              className="px-3.5 py-2 rounded-lg bg-slate-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-medium"
             >
               <option value="">All statuses</option>
               <option value="PENDING">Pending approval</option>
@@ -201,15 +201,15 @@ export const GovernanceAudit = ({ onOpen360 }) => {
             return (
               <div
                 key={rec.id}
-                className={`rounded-xl p-5 space-y-4 transition-colors ${
+                className={`rounded-xl p-4 sm:p-5 space-y-4 transition-colors ${
                   isPending
-                    ? 'bg-white border border-gray-200 border-l-4 border-l-amber-500 card-shadow-md'
-                    : 'bg-white border border-gray-200 card-shadow'
+                    ? 'bg-white border border-[#E2E8F0] border-l-4 border-l-amber-500 card-shadow-md'
+                    : 'bg-white border border-[#E2E8F0] card-shadow'
                 }`}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-gray-100 pb-3">
                   <div className="space-y-1">
-                    <div className="flex items-center space-x-2 text-xs font-mono text-gray-500">
+                    <div className="flex items-center space-x-2 text-xs font-mono text-gray-500 flex-wrap">
                       <span>#{rec.id} &bull; {rec.source_module}</span>
                       <span>&bull; Target: {rec.target_entity_label}</span>
                     </div>
@@ -241,7 +241,7 @@ export const GovernanceAudit = ({ onOpen360 }) => {
                           rec.action_payload.signals.map((s, idx) => (
                             <div key={idx} className="flex items-center justify-between border-b border-gray-200/40 py-0.5">
                               <span>{s.signal || s.factor || Object.keys(s)[0]}: {s.value || s.detail || Object.values(s)[0]}</span>
-                              {s.weight && <span className="text-blue-600 font-semibold">{s.weight}</span>}
+                              {s.weight && <span className="text-[#2463EB] font-semibold">{s.weight}</span>}
                             </div>
                           ))
                         ) : (
@@ -304,7 +304,7 @@ export const GovernanceAudit = ({ onOpen360 }) => {
           })}
 
           {recommendations.length === 0 && (
-            <div className="p-12 text-center text-gray-500 text-xs bg-white rounded-xl border border-gray-200 card-shadow">
+            <div className="p-12 text-center text-gray-500 text-xs bg-white rounded-xl border border-[#E2E8F0] card-shadow">
               No recommendations matching the active filter.
             </div>
           )}
@@ -313,21 +313,21 @@ export const GovernanceAudit = ({ onOpen360 }) => {
 
       {/* View 2: Audit Trail */}
       {activeTab === 'audit' && (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden card-shadow">
+        <div className="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden card-shadow">
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900">Immutable governance audit log</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Immutable Governance Audit Log</h3>
             <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full font-medium">{auditLogs.length} events recorded</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+            <table className="w-full text-left text-xs min-w-[700px]">
               <thead className="bg-slate-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Timestamp</th>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Module</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Action taken</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Action Taken</th>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Decision</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Responsible user</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Responsible User</th>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 text-right">Confidence</th>
                   <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 text-center">Receipt</th>
                 </tr>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
-import { ExplainabilityInspector } from '../components/ExplainabilityInspector';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import { api } from '../../services/api';
+import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
 import { 
   CheckCircle2, ExternalLink, RefreshCw, ArrowRight, Search, 
-  Layers, MessageSquare, Phone, Smartphone, Mail, AlertTriangle, Sparkles
+  Layers, MessageSquare, Phone, Smartphone, Mail
 } from 'lucide-react';
 
 const STAGE_COLORS = {
@@ -15,7 +16,11 @@ const STAGE_COLORS = {
   'Win-back': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', active: 'bg-amber-600 text-white' }
 };
 
-export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
+export const CustomerJourneys = () => {
+  const navigate = useNavigate();
+  const outletCtx = useOutletContext();
+  const onOpen360 = outletCtx?.onOpen360;
+
   const [items, setItems] = useState([]);
   const [funnelData, setFunnelData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +69,7 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
     setErrorMsg('');
     try {
       const rec = await api.proposeJourneyAction(selectedCust.customer_id);
-      setSuccessMsg(`Next-Best-Action for ${selectedCust.name} (${selectedCust.current_stage}) sent to governance queue (ID #${rec.id}).`);
+      setSuccessMsg(`Next-Best-Action for ${selectedCust.name} (${selectedCust.current_stage}) sent to SentinelOS governance queue (ID #${rec.id}).`);
       loadData(true);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to submit journey proposal');
@@ -99,11 +104,11 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Governed lifecycle engine</div>
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#2463EB]">Governed Lifecycle Engine</div>
           <h1 className="text-xl font-bold text-gray-900 mt-1">
             Intelligent Customer Journeys &amp; Next-Best-Action
           </h1>
@@ -117,20 +122,20 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
           disabled={loading || refreshing}
           className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-60"
         >
-          <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-[#2463EB]' : ''}`} />
           <span>{refreshing ? 'Re-evaluating Journeys...' : 'Refresh Lifecycle Stages'}</span>
         </button>
       </div>
 
       {successMsg && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center justify-between shadow-xs">
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center justify-between shadow-xs flex-wrap gap-2">
           <div className="flex items-center space-x-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{successMsg}</span>
           </div>
           <button
-            onClick={onOpenGovernance}
-            className="text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 ml-4 shrink-0"
+            onClick={() => navigate('/governance')}
+            className="text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 cursor-pointer"
           >
             <span>View in approval queue</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -145,19 +150,19 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
       )}
 
       {/* Lifecycle Funnel Pipeline Overview */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 card-shadow space-y-3">
+      <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 card-shadow space-y-3">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-blue-600" />
-            <span className="font-semibold text-gray-900">Customer Lifecycle Funnel &amp; Distribution</span>
+            <Layers className="w-4 h-4 text-[#2463EB]" />
+            <span className="font-bold text-gray-900">Customer Lifecycle Funnel &amp; Distribution</span>
           </div>
-          <span className="text-gray-500 font-mono text-[11px] bg-slate-100 px-2.5 py-0.5 rounded-full">
+          <span className="text-gray-500 font-mono text-[11px] bg-slate-100 px-2.5 py-0.5 rounded-full font-medium">
             {funnelData?.total_customers || items.length} Active Subscribers
           </span>
         </div>
 
         {/* Funnel Stage Steps */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-1">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5 pt-1">
           {funnelData?.stages?.map((st) => {
             const isSelected = activeStage === st.stage;
             const style = STAGE_COLORS[st.stage] || { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' };
@@ -178,8 +183,8 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
                 </div>
 
                 <div className="my-2">
-                  <div className="text-lg font-bold font-mono text-gray-900">{st.count}</div>
-                  <div className="text-[10.5px] text-gray-500 font-mono">Avg NPS: {st.avg_nps}/10</div>
+                  <div className="text-base sm:text-lg font-bold font-mono text-gray-900">{st.count}</div>
+                  <div className="text-[10px] sm:text-[10.5px] text-gray-500 font-mono">Avg NPS: {st.avg_nps}/10</div>
                 </div>
 
                 <div className="flex items-center justify-between pt-1 border-t border-gray-200/60 text-[10px]">
@@ -208,12 +213,12 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
             placeholder="Search by subscriber name or account code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-mono shadow-xs"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-mono shadow-xs"
           />
         </div>
 
         {/* Stage Filter Buttons */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 text-xs shrink-0 max-w-full">
+        <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 text-xs shrink-0 max-w-full -mx-2 sm:mx-0 px-2 sm:px-0">
           {stages.map((st) => {
             const count = st === 'All' ? items.length : items.filter((i) => i.current_stage === st).length;
             const isActive = activeStage === st;
@@ -221,9 +226,9 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
               <button
                 key={st}
                 onClick={() => setActiveStage(st)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center space-x-1.5 cursor-pointer ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-xs'
+                    ? 'bg-[#2463EB] text-white shadow-xs'
                     : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-gray-200'
                 }`}
               >
@@ -237,7 +242,7 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
         <select
           value={localityFilter}
           onChange={(e) => setLocalityFilter(e.target.value)}
-          className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-medium shadow-xs shrink-0"
+          className="w-full md:w-auto px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-medium shadow-xs shrink-0"
         >
           <option value="">All Mumbai Localities</option>
           {uniqueLocalities.map((loc) => (
@@ -247,17 +252,17 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
       </div>
 
       {/* 2-Column Split: Table + Explainability Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6">
         
         {/* Left Column: Customer Journeys Table */}
-        <div className="lg:col-span-7 bg-white border border-gray-200 rounded-xl overflow-hidden card-shadow">
+        <div className="lg:col-span-7 bg-white border border-[#E2E8F0] rounded-xl overflow-hidden card-shadow">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between text-xs">
             <span className="font-semibold text-gray-900">Lifecycle Subscribers ({filtered.length})</span>
             <span className="font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full font-medium">Click row to inspect NBA</span>
           </div>
 
-          <div className="overflow-x-auto max-h-[620px] overflow-y-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto max-h-[620px] overflow-y-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+            <table className="w-full text-left text-xs min-w-[500px]">
               <thead className="sticky top-0 bg-slate-50 border-b border-gray-200 z-10">
                 <tr>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Subscriber</th>
@@ -282,13 +287,15 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
                       <td className="px-4 py-3.5">
                         <div className="font-semibold text-gray-900 flex items-center gap-1.5">
                           <span>{item.name}</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onOpen360(item.customer_id); }}
-                            className="text-gray-400 hover:text-blue-600 transition-colors"
-                            title="Open Customer 360"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                          </button>
+                          {onOpen360 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onOpen360(item.customer_id); }}
+                              className="text-gray-400 hover:text-[#2463EB] transition-colors cursor-pointer"
+                              title="Open Customer 360"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                         <div className="text-[11px] text-gray-500 font-mono mt-0.5">
                           {item.customer_code} &bull; {item.locality}
@@ -344,7 +351,7 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
               customMetricLabel="Recommended Channel"
             />
           ) : (
-            <div className="p-8 text-center text-gray-500 bg-white rounded-xl border border-gray-200 card-shadow text-xs">
+            <div className="p-8 text-center text-gray-500 bg-white rounded-xl border border-[#E2E8F0] card-shadow text-xs">
               Select a customer to inspect Next-Best-Action signals and propose to governance.
             </div>
           )}
@@ -353,4 +360,3 @@ export const CustomerJourneys = ({ onOpen360, onOpenGovernance }) => {
     </div>
   );
 };
-

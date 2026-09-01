@@ -47,7 +47,15 @@ export function clearApiCache() {
 }
 
 export const api = {
-  clearCache: clearApiCache,
+  signup: async (fullName, email, password, role = 'Viewer') => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: fullName, email, password, role })
+    });
+    return handleResponse(res);
+  },
 
   login: async (email, password) => {
     clearApiCache();
@@ -57,6 +65,10 @@ export const api = {
       body: JSON.stringify({ email, password })
     });
     return handleResponse(res);
+  },
+
+  getUsers: async () => {
+    return cachedFetch(`${API_BASE}/auth/users`, { headers: getAuthHeaders() }, true);
   },
 
   demoLogin: async (role) => {

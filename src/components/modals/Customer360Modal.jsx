@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
-import { X, Sparkles, ExternalLink } from 'lucide-react';
+import { api } from '../../services/api';
+import { X, Sparkles } from 'lucide-react';
 
 export const Customer360Modal = ({ customerId, onClose }) => {
   const [data, setData] = useState(null);
@@ -20,40 +20,40 @@ export const Customer360Modal = ({ customerId, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6"
+      style={{ background: 'rgba(4, 14, 54, 0.65)', backdropFilter: 'blur(6px)' }}
     >
-      <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden modal-shadow">
+      <div className="bg-white border border-[#E2E8F0] rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden modal-shadow animate-in fade-in zoom-in-95 duration-150">
 
         {/* Header */}
-        <div className="bg-slate-50 border-b border-gray-200 p-5 flex items-center justify-between">
-          <div>
-            <div className="flex items-center space-x-2">
-              <h2 className="text-base font-bold text-gray-900">
+        <div className="bg-slate-50 border-b border-gray-200 p-4 sm:p-5 flex items-center justify-between">
+          <div className="min-w-0 flex-1 pr-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base font-bold text-gray-900 truncate">
                 {loading ? 'Loading subscriber profile...' : data?.customer?.name}
               </h2>
               {data && (
-                <span className="text-xs font-mono text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-md font-semibold">
+                <span className="text-xs font-mono text-gray-600 bg-white border border-gray-200 px-2 py-0.5 rounded-md font-semibold">
                   {data.customer.customer_code}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">Unified CRM, NMS, billing, and retention intelligence</p>
+            <p className="text-xs text-gray-500 mt-0.5">SentinelOS unified CRM, NMS, billing, and retention intelligence</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1 text-xs bg-[#F7F8FA]">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 text-xs bg-[#F5F8FF]">
           {loading && (
             <div className="text-center py-12 text-gray-500 space-y-2">
-              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              <div>Aggregating subscriber context from PostgreSQL...</div>
+              <div className="w-6 h-6 border-2 border-[#2463EB] border-t-transparent rounded-full animate-spin mx-auto" />
+              <div>Aggregating subscriber telemetry from PostgreSQL...</div>
             </div>
           )}
 
@@ -66,20 +66,20 @@ export const Customer360Modal = ({ customerId, onClose }) => {
           {data && (
             <>
               {/* Key Subscriber Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                <div className="bg-white border border-gray-200 rounded-xl p-3.5 card-shadow">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-3.5">
+                <div className="bg-white border border-[#E2E8F0] rounded-xl p-3.5 card-shadow">
                   <div className="text-gray-500 text-[11px] font-medium">Plan &amp; ARPU</div>
-                  <div className="text-sm font-bold text-gray-900 mt-0.5">{data.customer.plan_name}</div>
+                  <div className="text-sm font-bold text-gray-900 mt-0.5 truncate">{data.customer.plan_name}</div>
                   <div className="font-mono text-gray-500 text-[11px] mt-0.5">&#8377;{data.customer.arpu.toLocaleString()}/mo</div>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-xl p-3.5 card-shadow">
+                <div className="bg-white border border-[#E2E8F0] rounded-xl p-3.5 card-shadow">
                   <div className="text-gray-500 text-[11px] font-medium">Locality &amp; Node</div>
-                  <div className="text-sm font-bold text-gray-900 mt-0.5">{data.customer.locality}</div>
-                  <div className="font-mono text-gray-500 text-[11px] mt-0.5">{data.node?.node_name || 'Unassigned'}</div>
+                  <div className="text-sm font-bold text-gray-900 mt-0.5 truncate">{data.customer.locality}</div>
+                  <div className="font-mono text-gray-500 text-[11px] mt-0.5 truncate">{data.node?.node_name || 'Unassigned'}</div>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-xl p-3.5 card-shadow">
+                <div className="bg-white border border-[#E2E8F0] rounded-xl p-3.5 card-shadow">
                   <div className="text-gray-500 text-[11px] font-medium">Tenure &amp; NPS</div>
                   <div className="text-sm font-bold text-gray-900 mt-0.5 font-mono">{data.customer.tenure_months} months</div>
                   <div className="font-mono text-gray-500 text-[11px] mt-0.5">CSAT: {data.customer.nps_score}/10</div>
@@ -104,11 +104,11 @@ export const Customer360Modal = ({ customerId, onClose }) => {
               {/* Next-Best-Action */}
               <div className="bg-white border border-blue-200 rounded-xl p-4 space-y-1.5 card-shadow">
                 <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span className="font-semibold text-blue-600 flex items-center gap-1.5">
+                  <span className="font-semibold text-[#2463EB] flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Recommended Next-Best-Action:</span>
                   </span>
-                  <span className="font-mono bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                  <span className="font-mono bg-blue-50 text-[#2463EB] px-2 py-0.5 rounded-full font-medium">
                     {(data.next_best_action.confidence * 100).toFixed(0)}% confidence
                   </span>
                 </div>
@@ -216,9 +216,9 @@ export const Customer360Modal = ({ customerId, onClose }) => {
         <div className="p-4 border-t border-gray-200 bg-slate-50 flex items-center justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 text-xs font-semibold transition-colors shadow-xs"
+            className="px-4 py-2 rounded-lg bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 text-xs font-semibold transition-colors shadow-xs cursor-pointer"
           >
-            Close 360 view
+            Close Profile
           </button>
         </div>
 

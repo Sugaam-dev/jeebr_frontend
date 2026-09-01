@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
-import { ExplainabilityInspector } from '../components/ExplainabilityInspector';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../../services/api';
+import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
 import { CheckCircle2, ArrowRight, RefreshCw } from 'lucide-react';
 
-export const RevenueAssurance = ({ onOpen360, onOpenGovernance }) => {
+export const RevenueAssurance = () => {
+  const navigate = useNavigate();
   const [leakages, setLeakages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,7 +48,7 @@ export const RevenueAssurance = ({ onOpen360, onOpenGovernance }) => {
     setErrorMsg('');
     try {
       const rec = await api.proposeRevenueRemediation(selectedInv.invoice_id);
-      setSuccessMsg(`Billing remediation recommendation #${rec.id} submitted to governance queue.`);
+      setSuccessMsg(`Billing remediation recommendation #${rec.id} submitted to SentinelOS governance queue.`);
       loadData(true);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to submit billing remediation');
@@ -56,11 +58,11 @@ export const RevenueAssurance = ({ onOpen360, onOpenGovernance }) => {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Scored intelligence engine</div>
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#2463EB]">Scored Intelligence Engine</div>
           <h1 className="text-xl font-bold text-gray-900 mt-1">
             Revenue Assurance &amp; Billing Anomaly Detection
           </h1>
@@ -69,32 +71,32 @@ export const RevenueAssurance = ({ onOpen360, onOpenGovernance }) => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
           <button
             onClick={() => loadData(true)}
             disabled={loading || refreshing}
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-60"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-[#2463EB]' : ''}`} />
             <span>{refreshing ? 'Refreshing Ledger...' : 'Refresh Ledger'}</span>
           </button>
 
-          <div className="text-left md:text-right bg-blue-50/60 border border-blue-100 px-4 py-2.5 rounded-xl">
-            <div className="text-[10.5px] font-semibold text-gray-600 uppercase tracking-wider">Unrecovered leakage</div>
-            <div className="text-xl font-bold text-gray-900 font-mono">&#8377;{totalLeakage.toLocaleString()}</div>
+          <div className="text-left md:text-right bg-blue-50/60 border border-blue-100 px-4 py-2 rounded-xl">
+            <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Unrecovered Leakage</div>
+            <div className="text-lg font-bold text-gray-900 font-mono">&#8377;{totalLeakage.toLocaleString()}</div>
           </div>
         </div>
       </div>
 
       {successMsg && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center justify-between shadow-xs">
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center justify-between shadow-xs flex-wrap gap-2">
           <div className="flex items-center space-x-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{successMsg}</span>
           </div>
           <button
-            onClick={onOpenGovernance}
-            className="text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 ml-4 shrink-0"
+            onClick={() => navigate('/governance')}
+            className="text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 cursor-pointer"
           >
             <span>View in approval queue</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -109,23 +111,23 @@ export const RevenueAssurance = ({ onOpen360, onOpenGovernance }) => {
       )}
 
       {/* 2-Column Split: Anomaly Table + Explainability Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6">
         
         {/* Left Column: Anomaly Invoices Table */}
-        <div className="lg:col-span-7 bg-white border border-gray-200 rounded-xl overflow-hidden card-shadow">
+        <div className="lg:col-span-7 bg-white border border-[#E2E8F0] rounded-xl overflow-hidden card-shadow">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-900">Flagged billing anomaly ledger</span>
+            <span className="text-sm font-semibold text-gray-900">Flagged Billing Anomaly Ledger</span>
             <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full font-medium">{leakages.length} anomalies scored</span>
           </div>
 
-          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="sticky top-0 bg-slate-50 border-b border-gray-200">
+          <div className="overflow-x-auto max-h-[600px] overflow-y-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+            <table className="w-full text-left text-xs min-w-[500px]">
+              <thead className="sticky top-0 bg-slate-50 border-b border-gray-200 z-10">
                 <tr>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Invoice &amp; subscriber</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Anomaly vector</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Invoice &amp; Subscriber</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Anomaly Vector</th>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Leakage</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 text-right">Anomaly score</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 text-right">Anomaly Score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 font-mono">
@@ -138,7 +140,7 @@ export const RevenueAssurance = ({ onOpen360, onOpenGovernance }) => {
                       onClick={() => setSelectedInv(inv)}
                       className={`cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-blue-50/70 border-l-4 border-l-blue-600'
+                          ? 'bg-blue-50/70 border-l-4 border-l-[#2463EB]'
                           : 'hover:bg-slate-50 border-l-4 border-l-transparent'
                       }`}
                     >

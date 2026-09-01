@@ -1,172 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { Navbar } from './components/Navbar';
-import { Sidebar } from './components/Sidebar';
-import { LoginModal } from './components/LoginModal';
-import { Customer360Modal } from './components/Customer360Modal';
+import { AppLayout } from './components/layout/AppLayout';
 
-// Views
-import { ExecutiveCockpit } from './views/ExecutiveCockpit';
-import { PredictiveAssurance } from './views/PredictiveAssurance';
-import { ChurnPrediction } from './views/ChurnPrediction';
-import { CustomerJourneys } from './views/CustomerJourneys';
-import { OrchestrationQueue } from './views/OrchestrationQueue';
-import { RevenueAssurance } from './views/RevenueAssurance';
-import { GovernanceAudit } from './views/GovernanceAudit';
-import { CustomerSearch } from './views/CustomerSearch';
-import { PilotBundle } from './views/PilotBundle';
+// Public Marketing & Auth Pages
+import { LandingPage } from './pages/landing/LandingPage';
+import { LoginPage } from './pages/auth/LoginPage';
+import { SignupPage } from './pages/auth/SignupPage';
+import { UnauthorizedPage } from './pages/error/UnauthorizedPage';
+import { NotFoundPage } from './pages/error/NotFoundPage';
 
-const VALID_ROUTES = [
-  'cockpit',
-  'pilot-bundle',
-  'assurance',
-  'churn',
-  'revenue',
-  'orchestration',
-  'journeys',
-  'governance',
-  'customer360'
-];
+// Authenticated Application Dashboard Pages
+import { ExecutiveCockpit } from './pages/cockpit/ExecutiveCockpit';
+import { PilotBundle } from './pages/pilot-bundle/PilotBundle';
+import { PredictiveAssurance } from './pages/assurance/PredictiveAssurance';
+import { ChurnPrediction } from './pages/churn/ChurnPrediction';
+import { RevenueAssurance } from './pages/revenue/RevenueAssurance';
+import { OrchestrationQueue } from './pages/orchestration/OrchestrationQueue';
+import { CustomerJourneys } from './pages/journeys/CustomerJourneys';
+import { GovernanceAudit } from './pages/governance/GovernanceAudit';
+import { CustomerSearch } from './pages/customer360/CustomerSearch';
 
-function getInitialRoute() {
-  try {
-    const path = window.location.pathname.replace(/^\/+/, '').split('/')[0];
-    if (VALID_ROUTES.includes(path)) return path;
+// Protected Route Guard with optional RBAC checks
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
 
-    const hash = window.location.hash.replace(/^#\/?/, '').split('?')[0];
-    if (VALID_ROUTES.includes(hash)) return hash;
-
-    const saved = localStorage.getItem('jeebr_active_tab');
-    if (saved && VALID_ROUTES.includes(saved)) return saved;
-  } catch {}
-  return 'cockpit';
-}
-
-const MainLayout = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState(getInitialRoute);
-  const [modalCustomerId, setModalCustomerId] = useState(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem('jeebr-sidebar-collapsed') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  // Sync route on mount and listen to browser Back / Forward buttons
-  useEffect(() => {
-    const handlePopState = () => {
-      const route = getInitialRoute();
-      setActiveTab(route);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('hashchange', handlePopState);
-
-    // Ensure browser URL reflects current route
-    const currentRoute = getInitialRoute();
-    if (window.location.pathname !== `/${currentRoute}`) {
-      window.history.replaceState({ tab: currentRoute }, '', `/${currentRoute}`);
-    }
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('hashchange', handlePopState);
-    };
-  }, []);
-
-  const handleNavigate = (tab, replace = false) => {
-    if (!VALID_ROUTES.includes(tab)) return;
-    setActiveTab(tab);
-    try {
-      localStorage.setItem('jeebr_active_tab', tab);
-    } catch {}
-
-    const targetPath = `/${tab}`;
-    if (window.location.pathname !== targetPath) {
-      if (replace) {
-        window.history.replaceState({ tab }, '', targetPath);
-      } else {
-        window.history.pushState({ tab }, '', targetPath);
-      }
-    }
-  };
-
-  const handleSidebarToggle = (collapsed) => {
-    setSidebarCollapsed(collapsed);
-    try {
-      localStorage.setItem('jeebr-sidebar-collapsed', String(collapsed));
-    } catch {}
-  };
-
-  if (!user) {
-    return <LoginModal />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F8FF]">
+        <div className="w-8 h-8 border-3 border-[#2463EB] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
-  const renderView = () => {
-    switch (activeTab) {
-      case 'cockpit':
-        return <ExecutiveCockpit onNavigate={handleNavigate} onOpen360={setModalCustomerId} />;
-      case 'pilot-bundle':
-        return <PilotBundle onOpen360={setModalCustomerId} onOpenGovernance={() => handleNavigate('governance')} />;
-      case 'assurance':
-        return <PredictiveAssurance onOpen360={setModalCustomerId} onOpenGovernance={() => handleNavigate('governance')} />;
-      case 'churn':
-        return <ChurnPrediction onOpen360={setModalCustomerId} onOpenGovernance={() => handleNavigate('governance')} />;
-      case 'revenue':
-        return <RevenueAssurance onOpen360={setModalCustomerId} onOpenGovernance={() => handleNavigate('governance')} />;
-      case 'orchestration':
-        return <OrchestrationQueue onOpen360={setModalCustomerId} onOpenGovernance={() => handleNavigate('governance')} />;
-      case 'journeys':
-        return <CustomerJourneys onOpen360={setModalCustomerId} onOpenGovernance={() => handleNavigate('governance')} />;
-      case 'governance':
-        return <GovernanceAudit onOpen360={setModalCustomerId} />;
-      case 'customer360':
-        return <CustomerSearch onOpen360={setModalCustomerId} />;
-      default:
-        return <ExecutiveCockpit onNavigate={handleNavigate} onOpen360={setModalCustomerId} />;
+  if (!user) {
+    // Preserve requested path for post-login redirection
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (user.role !== 'Admin' && !allowedRoles.includes(user.role)) {
+      return <Navigate to="/unauthorized" replace />;
     }
-  };
+  }
 
-  return (
-    <div className="min-h-screen bg-[#F7F8FA] text-[#111827] flex font-sans antialiased">
-      {/* Dark Navy Sidebar */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={handleNavigate}
-        collapsed={sidebarCollapsed}
-        onToggle={handleSidebarToggle}
-      />
+  return children;
+}
 
-      {/* Main Content Column with White Top Bar */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <Navbar 
-          onToggleSidebar={() => handleSidebarToggle(!sidebarCollapsed)}
-          sidebarCollapsed={sidebarCollapsed}
-          onOpen360Global={() => handleNavigate('customer360')}
-          onNavigate={handleNavigate}
-        />
-        <main className="flex-1 overflow-y-auto bg-[#F7F8FA]">
-          {renderView()}
-        </main>
-      </div>
-
-      {modalCustomerId && (
-        <Customer360Modal
-          customerId={modalCustomerId}
-          onClose={() => setModalCustomerId(null)}
-        />
-      )}
-    </div>
-  );
-};
+// Redirect logged-in users away from /login and /signup
+function PublicOnlyRoute({ children }) {
+  const { user } = useAuth();
+  if (user) {
+    return <Navigate to="/cockpit" replace />;
+  }
+  return children;
+}
 
 export default function App() {
   return (
-    <AuthProvider>
-      <MainLayout />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Public Marketing Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* Public Authentication Pages (Redirect to dashboard if already authenticated) */}
+          <Route path="/login" element={
+            <PublicOnlyRoute>
+              <LoginPage />
+            </PublicOnlyRoute>
+          } />
+          
+          <Route path="/signup" element={
+            <PublicOnlyRoute>
+              <SignupPage />
+            </PublicOnlyRoute>
+          } />
+
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+          {/* Protected Application Routes under AppLayout Shell */}
+          <Route element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }>
+            <Route path="/cockpit" element={<ExecutiveCockpit />} />
+            <Route path="/pilot-bundle" element={<PilotBundle />} />
+            <Route path="/assurance" element={<PredictiveAssurance />} />
+            <Route path="/churn" element={<ChurnPrediction />} />
+            <Route path="/revenue" element={<RevenueAssurance />} />
+            <Route path="/orchestration" element={<OrchestrationQueue />} />
+            <Route path="/journeys" element={<CustomerJourneys />} />
+            <Route path="/governance" element={<GovernanceAudit />} />
+            <Route path="/customer360" element={<CustomerSearch />} />
+          </Route>
+
+          {/* 404 Catch-All */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
-

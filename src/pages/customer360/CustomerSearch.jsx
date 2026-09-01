@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { useOutletContext } from 'react-router-dom';
+import { api } from '../../services/api';
 import { Search, ExternalLink } from 'lucide-react';
 
-export const CustomerSearch = ({ onOpen360 }) => {
+export const CustomerSearch = () => {
+  const outletCtx = useOutletContext();
+  const onOpen360 = outletCtx?.onOpen360;
+
   const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [locality, setLocality] = useState('');
   const [segment, setSegment] = useState('');
 
   const loadData = () => {
-    setLoading(true);
     api.getCustomers(searchTerm, locality, segment)
-      .then(setCustomers)
-      .finally(() => setLoading(false));
+      .then(setCustomers);
   };
 
   useEffect(() => {
@@ -26,10 +27,10 @@ export const CustomerSearch = ({ onOpen360 }) => {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 card-shadow">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Integration &amp; insight layer</div>
+      <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-[#2463EB]">Integration &amp; Insight Layer</div>
         <h1 className="text-xl font-bold text-gray-900 mt-1">
           Subscriber Profile Explorer &amp; Customer 360
         </h1>
@@ -47,14 +48,14 @@ export const CustomerSearch = ({ onOpen360 }) => {
             placeholder="Search by name, customer code, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-mono shadow-xs"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-mono shadow-xs"
           />
         </div>
 
         <select
           value={locality}
           onChange={(e) => setLocality(e.target.value)}
-          className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-medium shadow-xs"
+          className="w-full md:w-auto px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-medium shadow-xs"
         >
           <option value="">All localities</option>
           <option value="Bandra West">Bandra West</option>
@@ -70,7 +71,7 @@ export const CustomerSearch = ({ onOpen360 }) => {
         <select
           value={segment}
           onChange={(e) => setSegment(e.target.value)}
-          className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-medium shadow-xs"
+          className="w-full md:w-auto px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-medium shadow-xs"
         >
           <option value="">All segments</option>
           <option value="Home Broadband">Home Broadband</option>
@@ -79,29 +80,29 @@ export const CustomerSearch = ({ onOpen360 }) => {
 
         <button
           type="submit"
-          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
+          className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-[#2463EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer"
         >
           Search
         </button>
       </form>
 
       {/* Customer List */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden card-shadow">
+      <div className="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden card-shadow">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between text-xs">
-          <span className="font-semibold text-gray-900">Subscriber database</span>
+          <span className="font-semibold text-gray-900">Subscriber Database</span>
           <span className="font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full font-medium">{customers.length} accounts loaded</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          <table className="w-full text-left text-xs min-w-[650px]">
             <thead className="bg-slate-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Account code</th>
-                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Subscriber name</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Account Code</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Subscriber Name</th>
                 <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Locality</th>
-                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Plan &amp; segment</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Plan &amp; Segment</th>
                 <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">ARPU</th>
-                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Lifecycle stage</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Lifecycle Stage</th>
                 <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 text-right">Customer 360</th>
               </tr>
             </thead>
@@ -122,13 +123,15 @@ export const CustomerSearch = ({ onOpen360 }) => {
                     </span>
                   </td>
                   <td className="px-4 py-3.5 text-right">
-                    <button
-                      onClick={() => onOpen360(c.id)}
-                      className="px-3 py-1 rounded-lg bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold shadow-xs transition-colors inline-flex items-center gap-1.5"
-                    >
-                      <span>View 360</span>
-                      <ExternalLink className="w-3 h-3 text-gray-400" />
-                    </button>
+                    {onOpen360 && (
+                      <button
+                        onClick={() => onOpen360(c.id)}
+                        className="px-3 py-1 rounded-lg bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span>View 360</span>
+                        <ExternalLink className="w-3 h-3 text-gray-400" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
