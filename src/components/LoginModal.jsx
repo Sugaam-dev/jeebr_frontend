@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ArrowRight, Lock, Mail } from 'lucide-react';
+import { ArrowRight, Lock, Mail, Zap } from 'lucide-react';
 
 export const LoginModal = () => {
   const { login, demoLogin, loading } = useAuth();
@@ -56,28 +56,31 @@ export const LoginModal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#14161C] flex items-center justify-center p-6">
-      <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-12 gap-6 bg-[#1C1F27] border border-[#2C303C] rounded-lg p-8">
-        
+    <div
+      className="min-h-screen flex items-center justify-center p-6 bg-[#F7F8FA]"
+      style={{ backgroundImage: 'radial-gradient(#E2E8F0 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+    >
+      <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-12 gap-6 bg-white border border-gray-200 rounded-2xl p-8 modal-shadow">
+
         {/* Left Side: System Info & Demo Roles */}
         <div className="md:col-span-7 space-y-5">
-          <div className="space-y-1.5">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 rounded bg-[#232733] border border-[#2C303C] flex items-center justify-center font-bold text-[#EDEBE6] text-xs font-mono">
-                JS
+          <div className="space-y-2">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0">
+                <Zap className="w-4 h-4 text-white fill-white" />
               </div>
-              <span className="font-semibold text-[#EDEBE6] text-base">Jeebr Internet &bull; PMRG AI Overlay</span>
+              <span className="font-bold text-gray-900 text-lg">Jeebr Internet &bull; PMRG AI Overlay</span>
             </div>
-            <h1 className="text-lg font-bold text-[#EDEBE6]">
-              Network Operations & Revenue Governance Control Room
+            <h1 className="text-xl font-bold text-gray-900">
+              Network Operations &amp; Revenue Governance Control Room
             </h1>
-            <p className="text-xs text-[#8B8F99] leading-relaxed">
+            <p className="text-xs text-gray-500 leading-relaxed">
               Demonstrating the governed operating loop across Mumbai network telemetry, subscriber churn risk, billing anomaly detection, and automated ticket triage.
             </p>
           </div>
 
           <div className="space-y-2 pt-2">
-            <div className="text-xs font-medium text-[#8B8F99]">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               Instant demo login (1-click role access):
             </div>
 
@@ -87,15 +90,15 @@ export const LoginModal = () => {
                   key={d.role}
                   disabled={loading}
                   onClick={() => handleDemo(d.role)}
-                  className="w-full text-left p-3 rounded bg-[#14161C] border border-[#2C303C] hover:border-[#8B8F99] transition-colors flex items-center justify-between group"
+                  className="w-full text-left p-3.5 rounded-xl bg-slate-50 border border-gray-200 hover:border-blue-400 hover:bg-blue-50/40 transition-all duration-150 flex items-center justify-between group"
                 >
                   <div className="space-y-0.5">
-                    <div className="text-xs font-semibold text-[#EDEBE6] group-hover:text-[#EDEBE6]">
+                    <div className="text-xs font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                       {d.title}
                     </div>
-                    <p className="text-[11px] text-[#8B8F99] leading-snug">{d.desc}</p>
+                    <p className="text-[11px] text-gray-500 leading-snug">{d.desc}</p>
                   </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-[#8B8F99] shrink-0 ml-2 group-hover:text-[#EDEBE6]" />
+                  <ArrowRight className="w-4 h-4 text-gray-400 shrink-0 ml-2 group-hover:text-blue-600 transition-colors" />
                 </button>
               ))}
             </div>
@@ -103,23 +106,23 @@ export const LoginModal = () => {
         </div>
 
         {/* Right Side: Standard Login Form */}
-        <div className="md:col-span-5 bg-[#14161C] border border-[#2C303C] rounded p-5 flex flex-col justify-between">
+        <div className="md:col-span-5 bg-slate-50 border border-gray-200 rounded-xl p-6 flex flex-col justify-between">
           <div className="space-y-4">
             <div>
-              <h2 className="text-sm font-semibold text-[#EDEBE6]">Standard authentication</h2>
-              <p className="text-xs text-[#8B8F99]">Sign in with user credentials</p>
+              <h2 className="text-sm font-bold text-gray-900">Standard authentication</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Sign in with user credentials</p>
             </div>
 
             {error && (
-              <div className="p-2.5 rounded bg-[#232733] border border-[#C1514B] text-xs text-[#C1514B]">
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-xs text-[#8B8F99] flex items-center space-x-1.5">
-                  <Mail className="w-3.5 h-3.5 text-[#8B8F99]" />
+                <label className="text-xs font-medium text-gray-600 flex items-center space-x-1.5">
+                  <Mail className="w-3.5 h-3.5 text-gray-500" />
                   <span>Email address</span>
                 </label>
                 <input
@@ -127,14 +130,14 @@ export const LoginModal = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-3 py-2 rounded bg-[#1C1F27] border border-[#2C303C] text-xs text-[#EDEBE6] focus:outline-none focus:border-[#8B8F99] font-mono"
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-mono"
                   placeholder="executive@jeebr.in"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs text-[#8B8F99] flex items-center space-x-1.5">
-                  <Lock className="w-3.5 h-3.5 text-[#8B8F99]" />
+                <label className="text-xs font-medium text-gray-600 flex items-center space-x-1.5">
+                  <Lock className="w-3.5 h-3.5 text-gray-500" />
                   <span>Password</span>
                 </label>
                 <input
@@ -142,7 +145,7 @@ export const LoginModal = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-3 py-2 rounded bg-[#1C1F27] border border-[#2C303C] text-xs text-[#EDEBE6] focus:outline-none focus:border-[#8B8F99] font-mono"
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-mono"
                   placeholder="admin123"
                 />
               </div>
@@ -150,7 +153,7 @@ export const LoginModal = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 rounded bg-[#232733] hover:bg-[#2C303C] border border-[#2C303C] font-semibold text-xs text-[#EDEBE6] transition-colors flex items-center justify-center space-x-2"
+                className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center space-x-2"
               >
                 <span>{loading ? 'Authenticating...' : 'Sign in to control room'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -158,8 +161,8 @@ export const LoginModal = () => {
             </form>
           </div>
 
-          <div className="pt-4 border-t border-[#2C303C] text-[11px] text-[#8B8F99] space-y-0.5 font-mono">
-            <div>Default seed password: <span className="text-[#EDEBE6]">admin123</span></div>
+          <div className="pt-4 border-t border-gray-200 text-[11px] text-gray-400 space-y-0.5 font-mono">
+            <div>Default seed password: <span className="text-gray-700 font-semibold">admin123</span></div>
           </div>
         </div>
 

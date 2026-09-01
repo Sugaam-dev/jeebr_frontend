@@ -18,26 +18,26 @@ export const ExplainabilityInspector = ({
   customMetricLabel
 }) => {
   const isCritical = score >= 60 || level === 'Critical';
-  const isAlert = score >= 35 && score < 60 || level === 'High';
+  const isAlert = (score >= 35 && score < 60) || level === 'High';
 
   return (
-    <div className="bg-[#1C1F27] border border-[#2C303C] rounded-lg p-5 space-y-4">
+    <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4 card-shadow">
       {/* Header Info */}
-      <div className="flex items-start justify-between border-b border-[#2C303C] pb-3.5">
+      <div className="flex items-start justify-between border-b border-gray-100 pb-3.5">
         <div className="space-y-0.5">
-          <h3 className="text-sm font-semibold text-[#EDEBE6]">{title}</h3>
-          {subtitle && <p className="text-xs text-[#8B8F99] font-mono">{subtitle}</p>}
+          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+          {subtitle && <p className="text-xs text-gray-500 font-mono">{subtitle}</p>}
         </div>
 
         <div className="text-right">
-          <div className="text-xs text-[#8B8F99]">{scoreLabel}</div>
+          <div className="text-xs text-gray-500 font-medium">{scoreLabel}</div>
           <div className="flex items-baseline justify-end space-x-1.5 mt-0.5">
-            <span className={`text-lg font-bold font-mono ${
-              isCritical ? 'text-[#C1514B]' : isAlert ? 'text-[#C9822E]' : 'text-[#4FAE8C]'
+            <span className={`text-xl font-bold font-mono ${
+              isCritical ? 'text-rose-600' : isAlert ? 'text-amber-600' : 'text-emerald-600'
             }`}>
               {score}%
             </span>
-            <span className="text-xs font-mono text-[#8B8F99]">
+            <span className="text-xs font-mono text-gray-500">
               ({level})
             </span>
           </div>
@@ -45,21 +45,21 @@ export const ExplainabilityInspector = ({
       </div>
 
       {/* Confidence & Metrics Strip */}
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="p-2 rounded bg-[#14161C] border border-[#2C303C] flex items-center justify-between">
-          <span className="text-[#8B8F99]">Model confidence</span>
-          <span className="font-mono font-semibold text-[#EDEBE6]">{(confidence * 100).toFixed(0)}%</span>
+      <div className="grid grid-cols-2 gap-2.5 text-xs">
+        <div className="bg-slate-50 border border-gray-200/80 rounded-lg p-2.5 flex items-center justify-between">
+          <span className="text-gray-500">Model confidence</span>
+          <span className="font-mono font-semibold text-gray-900">{(confidence * 100).toFixed(0)}%</span>
         </div>
 
         {customMetricLabel ? (
-          <div className="p-2 rounded bg-[#14161C] border border-[#2C303C] flex items-center justify-between">
-            <span className="text-[#8B8F99]">{customMetricLabel}</span>
-            <span className="font-mono font-semibold text-[#EDEBE6]">{customMetric}</span>
+          <div className="bg-slate-50 border border-gray-200/80 rounded-lg p-2.5 flex items-center justify-between">
+            <span className="text-gray-500">{customMetricLabel}</span>
+            <span className="font-mono font-semibold text-gray-900">{customMetric}</span>
           </div>
         ) : (
-          <div className="p-2 rounded bg-[#14161C] border border-[#2C303C] flex items-center justify-between">
-            <span className="text-[#8B8F99]">Governance state</span>
-            <span className={`font-mono text-xs ${isPending ? 'text-[#C9822E]' : 'text-[#8B8F99]'}`}>
+          <div className="bg-slate-50 border border-gray-200/80 rounded-lg p-2.5 flex items-center justify-between">
+            <span className="text-gray-500">Governance state</span>
+            <span className={`font-mono text-xs font-medium ${isPending ? 'text-amber-600' : 'text-emerald-600'}`}>
               {isPending ? 'Pending sign-off' : 'Ready'}
             </span>
           </div>
@@ -68,30 +68,41 @@ export const ExplainabilityInspector = ({
 
       {/* Contributing Signals Breakdown */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs font-medium text-[#8B8F99]">
+        <div className="flex items-center justify-between text-xs font-semibold text-gray-600 uppercase tracking-wider">
           <span>Contributing signals</span>
           <span>Weight</span>
         </div>
 
-        <div className="space-y-1.5 max-h-56 overflow-y-auto">
+        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
           {signals.map((sig, idx) => {
             const isPos = sig.impact_type === 'positive';
             const isNeg = sig.impact_type === 'negative';
             return (
-              <div 
-                key={idx} 
-                className="p-2.5 rounded bg-[#14161C] border border-[#2C303C] flex items-start justify-between gap-2 text-xs"
+              <div
+                key={idx}
+                className="p-3 rounded-lg bg-slate-50 border border-gray-200/80 flex items-start justify-between gap-2 text-xs hover:bg-slate-100/60 transition-colors"
               >
-                <div className="space-y-0.5 min-w-0">
-                  <div className="font-medium text-[#EDEBE6] truncate flex items-center space-x-1.5">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="font-semibold text-gray-900 truncate flex items-center space-x-1.5">
                     <span>{sig.signal}:</span>
-                    <span className="font-mono text-[#8B8F99] font-normal">{sig.value}</span>
+                    <span className="font-mono text-gray-500 font-normal">{sig.value}</span>
                   </div>
-                  <div className="text-[11px] text-[#8B8F99] leading-snug">{sig.detail}</div>
+                  <div className="text-[11px] text-gray-600 leading-snug">{sig.detail}</div>
+                  {/* Visual weight bar */}
+                  <div className="mt-1.5 h-1.5 rounded-full overflow-hidden bg-gray-200">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.abs(parseFloat(sig.weight || 0) * 10)}%`,
+                        minWidth: '8%',
+                        backgroundColor: isNeg ? '#EF4444' : isPos ? '#10B981' : '#64748B'
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <span className={`font-mono text-xs font-semibold shrink-0 ml-2 ${
-                  isNeg ? 'text-[#C1514B]' : isPos ? 'text-[#4FAE8C]' : 'text-[#8B8F99]'
+                <span className={`font-mono text-xs font-bold shrink-0 ml-2 ${
+                  isNeg ? 'text-rose-600' : isPos ? 'text-emerald-600' : 'text-gray-500'
                 }`}>
                   {sig.weight}
                 </span>
@@ -102,27 +113,34 @@ export const ExplainabilityInspector = ({
       </div>
 
       {/* Suggested Action & 1-Click Governance Proposal */}
-      <div className="p-3.5 rounded bg-[#232733] border border-[#2C303C] space-y-2.5">
-        <div className="text-xs font-medium text-[#EDEBE6]">
-          AI recommended action:
+      <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 space-y-3">
+        <div className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+          <span>AI recommended action:</span>
         </div>
 
-        <p className="text-xs text-[#8B8F99] leading-relaxed">
+        <p className="text-xs text-gray-600 leading-relaxed">
           {suggestedAction}
         </p>
 
-        <button
-          disabled={isProposing || isPending}
-          onClick={onPropose}
-          className={`w-full py-2 rounded text-xs font-semibold transition-colors flex items-center justify-center space-x-2 ${
-            isPending
-              ? 'bg-[#14161C] text-[#8B8F99] cursor-not-allowed border border-[#2C303C]'
-              : 'bg-[#1C1F27] hover:bg-[#2C303C] text-[#EDEBE6] border border-[#2C303C]'
-          }`}
-        >
-          <ShieldAlert className="w-3.5 h-3.5 text-[#C9822E]" />
-          <span>{isProposing ? 'Submitting proposal...' : isPending ? 'Action in governance queue' : actionButtonLabel}</span>
-        </button>
+        {isPending ? (
+          <button
+            disabled
+            className="w-full py-2.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 flex items-center justify-center gap-2"
+          >
+            <ShieldAlert className="w-4 h-4 text-amber-500" />
+            <span>Action in governance queue</span>
+          </button>
+        ) : (
+          <button
+            disabled={isProposing}
+            onClick={onPropose}
+            className="w-full px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-2"
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>{isProposing ? 'Submitting proposal...' : actionButtonLabel}</span>
+          </button>
+        )}
       </div>
     </div>
   );

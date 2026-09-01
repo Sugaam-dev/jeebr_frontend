@@ -2,27 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { MumbaiNetworkMap } from '../components/MumbaiNetworkMap';
 import { ExplainabilityInspector } from '../components/ExplainabilityInspector';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, RefreshCw, ArrowRight } from 'lucide-react';
 
 export const PredictiveAssurance = ({ onOpen360, onOpenGovernance }) => {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
   const [proposing, setProposing] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const loadData = () => {
-    setLoading(true);
-    api.getNodePredictions()
+  const loadData = (force = false) => {
+    if (force) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setErrorMsg('');
+    api.getNodePredictions(Boolean(force))
       .then((data) => {
         setPredictions(data);
-        if (data.length > 0 && !selectedNode) {
-          setSelectedNode(data[0]);
+        if (data.length > 0) {
+          setSelectedNode((prev) => (prev ? data.find(d => d.node_id === prev.node_id) || data[0] : data[0]));
         }
       })
       .catch((err) => setErrorMsg(err.message))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   };
 
   useEffect(() => {
@@ -37,7 +46,7 @@ export const PredictiveAssurance = ({ onOpen360, onOpenGovernance }) => {
     try {
       const rec = await api.proposeAssuranceDispatch(selectedNode.node_id);
       setSuccessMsg(`Dispatch recommendation #${rec.id} submitted to governance queue.`);
-      loadData();
+      loadData(true);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to submit dispatch recommendation');
     } finally {
@@ -46,44 +55,47 @@ export const PredictiveAssurance = ({ onOpen360, onOpenGovernance }) => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-[#1C1F27] border border-[#2C303C] rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="text-xs font-medium text-[#8B8F99]">Scored intelligence engine</div>
-          <h1 className="text-base font-bold text-[#EDEBE6] mt-0.5">
-            Predictive Service Assurance & Node Telemetry
+          <div className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Scored intelligence engine</div>
+          <h1 className="text-xl font-bold text-gray-900 mt-1">
+            Predictive Service Assurance &amp; Node Telemetry
           </h1>
-          <p className="text-xs text-[#8B8F99] mt-0.5">
+          <p className="text-xs text-gray-500 mt-1">
             Real-time degradation scoring correlating optical attenuation (dBm), backhaul utilization, packet drops, and subscriber impact.
           </p>
         </div>
 
         <button
-          onClick={loadData}
-          className="px-3 py-1.5 bg-[#232733] hover:bg-[#2C303C] text-xs font-medium text-[#EDEBE6] rounded transition-colors shrink-0 border border-[#2C303C]"
+          onClick={() => loadData(true)}
+          disabled={loading || refreshing}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-60"
         >
-          Refresh telemetry
+          <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+          <span>{refreshing ? 'Refreshing Telemetry...' : 'Refresh Telemetry'}</span>
         </button>
       </div>
 
       {successMsg && (
-        <div className="p-3 rounded bg-[#232733] border border-[#4FAE8C] text-[#4FAE8C] text-xs flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center justify-between shadow-xs">
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{successMsg}</span>
           </div>
           <button
             onClick={onOpenGovernance}
-            className="underline font-medium hover:text-[#EDEBE6] ml-4 shrink-0"
+            className="text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 ml-4 shrink-0"
           >
-            View in approval queue &rarr;
+            <span>View in approval queue</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-3 rounded bg-[#232733] border border-[#C1514B] text-[#C1514B] text-xs">
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
           {errorMsg}
         </div>
       )}
@@ -99,25 +111,25 @@ export const PredictiveAssurance = ({ onOpen360, onOpenGovernance }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Column: Tabular Telemetry Grid */}
-        <div className="lg:col-span-7 bg-[#1C1F27] border border-[#2C303C] rounded-lg overflow-hidden">
-          <div className="p-3.5 border-b border-[#2C303C] flex items-center justify-between text-xs text-[#8B8F99]">
-            <span className="font-medium text-[#EDEBE6]">Mumbai node telemetry leaderboard</span>
-            <span className="font-mono">{predictions.length} nodes monitored</span>
+        <div className="lg:col-span-7 bg-white border border-gray-200 rounded-xl overflow-hidden card-shadow">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between text-xs">
+            <span className="font-semibold text-gray-900">Mumbai node telemetry leaderboard</span>
+            <span className="font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-medium">{predictions.length} nodes monitored</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#14161C] border-b border-[#2C303C] text-[#8B8F99]">
+              <thead className="bg-slate-50 border-b border-gray-200">
                 <tr>
-                  <th className="p-3 font-medium">Node & hub</th>
-                  <th className="p-3 font-medium">Optical Rx</th>
-                  <th className="p-3 font-medium">Util %</th>
-                  <th className="p-3 font-medium">Loss %</th>
-                  <th className="p-3 font-medium">Subscribers</th>
-                  <th className="p-3 font-medium text-right">Risk score</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Node &amp; hub</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Optical Rx</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Util %</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Loss %</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Subscribers</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 text-right">Risk score</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#2C303C] font-mono">
+              <tbody className="divide-y divide-gray-100 font-mono">
                 {predictions.map((p) => {
                   const isSelected = selectedNode?.node_id === p.node_id;
                   const isCritical = p.degradation_risk_score >= 60;
@@ -129,27 +141,31 @@ export const PredictiveAssurance = ({ onOpen360, onOpenGovernance }) => {
                       onClick={() => setSelectedNode(p)}
                       className={`cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-[#232733] text-[#EDEBE6]'
-                          : 'text-[#8B8F99] hover:bg-[#14161C] hover:text-[#EDEBE6]'
+                          ? 'bg-blue-50/70 border-l-4 border-l-blue-600'
+                          : 'hover:bg-slate-50 border-l-4 border-l-transparent'
                       }`}
                     >
-                      <td className="p-3 font-sans">
-                        <div className="font-semibold text-[#EDEBE6]">{p.node_name}</div>
-                        <div className="text-[11px] text-[#8B8F99] font-mono">{p.node_code} &bull; {p.area}</div>
+                      <td className="px-4 py-3.5 font-sans">
+                        <div className="font-bold text-gray-900">{p.node_name}</div>
+                        <div className="text-[11px] text-gray-500 font-mono">{p.node_code} &bull; {p.area}</div>
                       </td>
-                      <td className={`p-3 font-bold ${
-                        p.optical_power_dbm < -26.5 ? 'text-[#C1514B]' : 'text-[#EDEBE6]'
+                      <td className={`px-4 py-3.5 font-bold ${
+                        p.optical_power_dbm < -26.5 ? 'text-rose-600' : 'text-gray-900'
                       }`}>
                         {p.optical_power_dbm} dBm
                       </td>
-                      <td className="p-3 text-[#8B8F99]">{p.utilization_pct}%</td>
-                      <td className="p-3 text-[#8B8F99]">{p.packet_loss_pct}%</td>
-                      <td className="p-3 text-[#8B8F99]">
-                        {p.impacted_customers_count} <span className="text-[11px]">({p.impacted_corporate_count} ILL)</span>
+                      <td className="px-4 py-3.5 text-gray-600">{p.utilization_pct}%</td>
+                      <td className="px-4 py-3.5 text-gray-600">{p.packet_loss_pct}%</td>
+                      <td className="px-4 py-3.5 text-gray-600">
+                        {p.impacted_customers_count} <span className="text-[11px] text-gray-400">({p.impacted_corporate_count} ILL)</span>
                       </td>
-                      <td className="p-3 text-right">
-                        <span className={`font-bold text-xs ${
-                          isCritical ? 'text-[#C1514B]' : isMedium ? 'text-[#C9822E]' : 'text-[#4FAE8C]'
+                      <td className="px-4 py-3.5 text-right">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold font-mono border ${
+                          isCritical 
+                            ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                            : isMedium 
+                            ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                         }`}>
                           {p.degradation_risk_score}%
                         </span>

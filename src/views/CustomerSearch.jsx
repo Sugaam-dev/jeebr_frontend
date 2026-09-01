@@ -26,14 +26,14 @@ export const CustomerSearch = ({ onOpen360 }) => {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-[#1C1F27] border border-[#2C303C] rounded-lg p-4">
-        <div className="text-xs font-medium text-[#8B8F99]">Integration & insight layer</div>
-        <h1 className="text-base font-bold text-[#EDEBE6] mt-0.5">
-          Subscriber Profile Explorer & Customer 360
+      <div className="bg-white border border-gray-200 rounded-xl p-6 card-shadow">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Integration &amp; insight layer</div>
+        <h1 className="text-xl font-bold text-gray-900 mt-1">
+          Subscriber Profile Explorer &amp; Customer 360
         </h1>
-        <p className="text-xs text-[#8B8F99] mt-0.5">
+        <p className="text-xs text-gray-500 mt-1">
           Search across Mumbai subscriber accounts to inspect correlated network telemetry, tickets, billing history, and active recommendations.
         </p>
       </div>
@@ -41,20 +41,20 @@ export const CustomerSearch = ({ onOpen360 }) => {
       {/* Search & Filters */}
       <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-[#8B8F99] absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
           <input
             type="text"
             placeholder="Search by name, customer code, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded bg-[#1C1F27] border border-[#2C303C] text-xs text-[#EDEBE6] focus:outline-none font-mono"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-mono shadow-xs"
           />
         </div>
 
         <select
           value={locality}
           onChange={(e) => setLocality(e.target.value)}
-          className="px-3 py-2 rounded bg-[#1C1F27] border border-[#2C303C] text-xs text-[#EDEBE6] focus:outline-none font-mono"
+          className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-medium shadow-xs"
         >
           <option value="">All localities</option>
           <option value="Bandra West">Bandra West</option>
@@ -70,7 +70,7 @@ export const CustomerSearch = ({ onOpen360 }) => {
         <select
           value={segment}
           onChange={(e) => setSegment(e.target.value)}
-          className="px-3 py-2 rounded bg-[#1C1F27] border border-[#2C303C] text-xs text-[#EDEBE6] focus:outline-none font-mono"
+          className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-medium shadow-xs"
         >
           <option value="">All segments</option>
           <option value="Home Broadband">Home Broadband</option>
@@ -79,51 +79,55 @@ export const CustomerSearch = ({ onOpen360 }) => {
 
         <button
           type="submit"
-          className="px-4 py-2 bg-[#232733] hover:bg-[#2C303C] text-[#EDEBE6] font-medium text-xs rounded transition-colors border border-[#2C303C] shrink-0"
+          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
         >
           Search
         </button>
       </form>
 
       {/* Customer List */}
-      <div className="bg-[#1C1F27] border border-[#2C303C] rounded-lg overflow-hidden">
-        <div className="p-3.5 border-b border-[#2C303C] flex items-center justify-between text-xs text-[#8B8F99]">
-          <span className="font-medium text-[#EDEBE6]">Subscriber database</span>
-          <span className="font-mono">{customers.length} accounts loaded</span>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden card-shadow">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between text-xs">
+          <span className="font-semibold text-gray-900">Subscriber database</span>
+          <span className="font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full font-medium">{customers.length} accounts loaded</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#14161C] border-b border-[#2C303C] text-[#8B8F99]">
+            <thead className="bg-slate-50 border-b border-gray-200">
               <tr>
-                <th className="p-3 font-medium">Account code</th>
-                <th className="p-3 font-medium">Subscriber name</th>
-                <th className="p-3 font-medium">Locality</th>
-                <th className="p-3 font-medium">Plan & segment</th>
-                <th className="p-3 font-medium">ARPU</th>
-                <th className="p-3 font-medium">Lifecycle stage</th>
-                <th className="p-3 font-medium text-right">Customer 360</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Account code</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Subscriber name</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Locality</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Plan &amp; segment</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">ARPU</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Lifecycle stage</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 text-right">Customer 360</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#2C303C]">
+            <tbody className="divide-y divide-gray-100 font-sans">
               {customers.map((c) => (
-                <tr key={c.id} className="text-[#EDEBE6] hover:bg-[#14161C] transition-colors">
-                  <td className="p-3 font-mono text-[#8B8F99]">{c.customer_code}</td>
-                  <td className="p-3 font-semibold">{c.name}</td>
-                  <td className="p-3 text-[#8B8F99]">{c.locality}</td>
-                  <td className="p-3">
-                    <div>{c.plan_name}</div>
-                    <div className="text-[11px] text-[#8B8F99]">{c.segment}</div>
+                <tr key={c.id} className="cursor-pointer transition-colors hover:bg-slate-50/80">
+                  <td className="px-4 py-3.5 font-mono text-gray-500">{c.customer_code}</td>
+                  <td className="px-4 py-3.5 font-bold text-gray-900">{c.name}</td>
+                  <td className="px-4 py-3.5 text-gray-600">{c.locality}</td>
+                  <td className="px-4 py-3.5 text-gray-900">
+                    <div className="font-medium">{c.plan_name}</div>
+                    <div className="text-[11px] text-gray-400 font-mono">{c.segment}</div>
                   </td>
-                  <td className="p-3 font-mono">&#8377;{c.arpu}</td>
-                  <td className="p-3 text-[#8B8F99]">{c.current_stage}</td>
-                  <td className="p-3 text-right">
+                  <td className="px-4 py-3.5 font-mono font-bold text-gray-900">&#8377;{c.arpu}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                      {c.current_stage}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5 text-right">
                     <button
                       onClick={() => onOpen360(c.id)}
-                      className="px-2.5 py-1 bg-[#14161C] hover:bg-[#232733] text-[#EDEBE6] rounded text-xs transition-colors border border-[#2C303C] inline-flex items-center space-x-1"
+                      className="px-3 py-1 rounded-lg bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold shadow-xs transition-colors inline-flex items-center gap-1.5"
                     >
                       <span>View 360</span>
-                      <ExternalLink className="w-3 h-3 text-[#8B8F99]" />
+                      <ExternalLink className="w-3 h-3 text-gray-400" />
                     </button>
                   </td>
                 </tr>

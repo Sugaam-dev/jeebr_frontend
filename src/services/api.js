@@ -1,5 +1,9 @@
 const API_BASE = 'http://localhost:8000/api';
 
+// In-memory cache for ultra-fast tab switches and responsive UI
+const requestCache = new Map();
+const CACHE_TTL_MS = 20000; // 20 seconds cache TTL
+
 function getAuthHeaders() {
   const token = localStorage.getItem('jeebr_token');
   return {
@@ -21,8 +25,32 @@ async function handleResponse(res) {
   return res.json();
 }
 
+async function cachedFetch(url, options = {}, forceRefresh = false) {
+  const cacheKey = url;
+  const now = Date.now();
+  
+  if (!forceRefresh && requestCache.has(cacheKey)) {
+    const cached = requestCache.get(cacheKey);
+    if (now - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
+  }
+
+  const res = await fetch(url, options);
+  const data = await handleResponse(res);
+  requestCache.set(cacheKey, { timestamp: now, data });
+  return data;
+}
+
+export function clearApiCache() {
+  requestCache.clear();
+}
+
 export const api = {
+  clearCache: clearApiCache,
+
   login: async (email, password) => {
+    clearApiCache();
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -32,6 +60,7 @@ export const api = {
   },
 
   demoLogin: async (role) => {
+    clearApiCache();
     const res = await fetch(`${API_BASE}/auth/demo-login/${role}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -39,21 +68,16 @@ export const api = {
     return handleResponse(res);
   },
 
-  getCockpitSummary: async () => {
-    const res = await fetch(`${API_BASE}/cockpit/summary`, {
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
+  getCockpitSummary: async (forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/cockpit/summary`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
-  getNodePredictions: async () => {
-    const res = await fetch(`${API_BASE}/assurance/predictions`, {
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
+  getNodePredictions: async (forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/assurance/predictions`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   proposeAssuranceDispatch: async (nodeId, actionType, customNotes) => {
+    clearApiCache();
     const res = await fetch(`${API_BASE}/assurance/recommend`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -62,14 +86,12 @@ export const api = {
     return handleResponse(res);
   },
 
-  getAtRiskCustomers: async (minScore = 30) => {
-    const res = await fetch(`${API_BASE}/churn/at-risk?min_score=${minScore}`, {
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
+  getAtRiskCustomers: async (minScore = 30, forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/churn/at-risk?min_score=${minScore}`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   proposeRetentionAction: async (customerId, actionType, customNotes) => {
+    clearApiCache();
     const res = await fetch(`${API_BASE}/churn/recommend`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -78,14 +100,16 @@ export const api = {
     return handleResponse(res);
   },
 
-  getJourneyNBAs: async () => {
-    const res = await fetch(`${API_BASE}/journeys/next-best-actions`, {
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
+  getJourneyNBAs: async (forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/journeys/next-best-actions`, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  getJourneyFunnelSummary: async (forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/journeys/funnel-summary`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   proposeJourneyAction: async (customerId, actionType) => {
+    clearApiCache();
     const res = await fetch(`${API_BASE}/journeys/recommend`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -94,14 +118,16 @@ export const api = {
     return handleResponse(res);
   },
 
-  getOrchestrationQueue: async () => {
-    const res = await fetch(`${API_BASE}/orchestration/queue`, {
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
+  getPilotBundleScenario: async (nodeCode = 'OLT-BND-01', forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/pilot-bundle/scenario?node_code=${encodeURIComponent(nodeCode)}`, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  getOrchestrationQueue: async (forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/orchestration/queue`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   proposeOrchestration: async (ticketId, workflowAction) => {
+    clearApiCache();
     const res = await fetch(`${API_BASE}/orchestration/recommend`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -110,14 +136,12 @@ export const api = {
     return handleResponse(res);
   },
 
-  getRevenueLeakages: async () => {
-    const res = await fetch(`${API_BASE}/revenue/leakages`, {
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
+  getRevenueLeakages: async (forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/revenue/leakages`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   proposeRevenueRemediation: async (invoiceId, remediationAction) => {
+    clearApiCache();
     const res = await fetch(`${API_BASE}/revenue/recommend`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -126,15 +150,15 @@ export const api = {
     return handleResponse(res);
   },
 
-  getRecommendations: async (status, sourceModule) => {
+  getRecommendations: async (status, sourceModule, forceRefresh = false) => {
     let url = `${API_BASE}/governance/recommendations?`;
     if (status) url += `status=${encodeURIComponent(status)}&`;
     if (sourceModule) url += `source_module=${encodeURIComponent(sourceModule)}&`;
-    const res = await fetch(url, { headers: getAuthHeaders() });
-    return handleResponse(res);
+    return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   approveRecommendation: async (recommendationId, notes) => {
+    clearApiCache();
     const res = await fetch(`${API_BASE}/governance/approve`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -144,6 +168,7 @@ export const api = {
   },
 
   rejectRecommendation: async (recommendationId, notes) => {
+    clearApiCache();
     const res = await fetch(`${API_BASE}/governance/reject`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -152,27 +177,23 @@ export const api = {
     return handleResponse(res);
   },
 
-  getAuditTrail: async (sourceModule, decision) => {
+  getAuditTrail: async (sourceModule, decision, forceRefresh = false) => {
     let url = `${API_BASE}/governance/audit-trail?limit=100&`;
     if (sourceModule) url += `source_module=${encodeURIComponent(sourceModule)}&`;
     if (decision) url += `decision=${encodeURIComponent(decision)}&`;
-    const res = await fetch(url, { headers: getAuthHeaders() });
-    return handleResponse(res);
+    return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
   },
 
-  getCustomers: async (search = '', locality = '', segment = '') => {
+  getCustomers: async (search = '', locality = '', segment = '', forceRefresh = false) => {
     let url = `${API_BASE}/customers?limit=60&`;
     if (search) url += `search=${encodeURIComponent(search)}&`;
     if (locality) url += `locality=${encodeURIComponent(locality)}&`;
     if (segment) url += `segment=${encodeURIComponent(segment)}&`;
-    const res = await fetch(url, { headers: getAuthHeaders() });
-    return handleResponse(res);
+    return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
   },
 
-  getCustomer360: async (customerId) => {
-    const res = await fetch(`${API_BASE}/customers/${customerId}/360`, {
-      headers: getAuthHeaders()
-    });
-    return handleResponse(res);
+  getCustomer360: async (customerId, forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/customers/${customerId}/360`, { headers: getAuthHeaders() }, forceRefresh);
   }
 };
+

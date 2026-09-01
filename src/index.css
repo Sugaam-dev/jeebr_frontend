@@ -1,27 +1,134 @@
 @import "tailwindcss";
 
+/* ============================================================
+   JEEBR BRAND DESIGN SYSTEM — Light Modern Redesign
+   - Main content: Light gray/off-white (#F7F8FA)
+   - Cards: Pure white (#FFFFFF) + soft 1px border (#E5E7EB) + drop shadow
+   - Sidebar: Dark navy blue (#0B1E3D)
+   - Active Pill: Bright Blue (#3B6BFF)
+   ============================================================ */
+
+@theme {
+  /* Background scale — Light theme */
+  --color-jeebr-base:    #F7F8FA;
+  --color-jeebr-sidebar: #0B1E3D;
+  --color-jeebr-surface: #FFFFFF;
+  --color-jeebr-raised:  #F8FAFC;
+  --color-jeebr-hover:   #F1F5F9;
+
+  /* Blue accent scale */
+  --color-jeebr-dim:     #E5E7EB;
+  --color-jeebr-border:  #E5E7EB;
+  --color-jeebr-accent:  #3B6BFF;
+  --color-jeebr-mid:     #2563EB;
+  --color-jeebr-bright:  #3B6BFF;
+  --color-jeebr-glow:    #60A5FA;
+
+  /* Text — Dark on light */
+  --color-jeebr-text:    #111827;
+  --color-jeebr-muted:   #6B7280;
+  --color-jeebr-faint:   #9CA3AF;
+
+  /* Status */
+  --color-jeebr-ok:      #10B981;
+  --color-jeebr-warn:    #F59E0B;
+  --color-jeebr-crit:    #EF4444;
+}
+
+/* ============================================================
+   CSS CUSTOM PROPERTIES — for use in JS/Recharts/SVG contexts
+   ============================================================ */
+:root {
+  --jeebr-base:    #F7F8FA;
+  --jeebr-sidebar: #0B1E3D;
+  --jeebr-surface: #FFFFFF;
+  --jeebr-raised:  #F8FAFC;
+  --jeebr-hover:   #F1F5F9;
+  --jeebr-dim:     #E5E7EB;
+  --jeebr-border:  #E5E7EB;
+  --jeebr-accent:  #3B6BFF;
+  --jeebr-mid:     #2563EB;
+  --jeebr-bright:  #3B6BFF;
+  --jeebr-glow:    #60A5FA;
+  --jeebr-text:    #111827;
+  --jeebr-muted:   #6B7280;
+  --jeebr-faint:   #9CA3AF;
+  --jeebr-ok:      #10B981;
+  --jeebr-warn:    #F59E0B;
+  --jeebr-crit:    #EF4444;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
 @layer base {
   body {
     margin: 0;
-    background-color: #14161C;
-    color: #EDEBE6;
+    background-color: var(--jeebr-base);
+    color: var(--jeebr-text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Focus ring */
+  *:focus-visible {
+    outline: 2px solid var(--jeebr-bright);
+    outline-offset: 2px;
+  }
 }
 
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #14161C;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2C303C;
-  border-radius: 2px;
+  background: #CBD5E1;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3E4352;
+  background: #94A3B8;
+}
+
+/* ============================================================
+   SIDEBAR TRANSITION UTILITY
+   ============================================================ */
+.sidebar-transition {
+  transition: width 220ms ease;
+}
+
+/* ============================================================
+   SEGMENTED CONTROL — sliding active pill
+   ============================================================ */
+.seg-pill {
+  transition: transform 200ms ease, width 200ms ease;
+}
+
+/* ============================================================
+   TABLE ZEBRA — for tables that opt-in
+   ============================================================ */
+.zebra-table tbody tr:nth-child(even) {
+  background-color: #FAFCFF;
+}
+.zebra-table tbody tr:hover {
+  background-color: #F8FAFC;
+}
+
+/* ============================================================
+   CARD SHADOW
+   ============================================================ */
+.card-shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.card-shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+.modal-shadow {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }

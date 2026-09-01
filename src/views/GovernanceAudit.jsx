@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, XCircle, RefreshCw, Lock, ChevronDown, ChevronUp, ShieldAlert, Sparkles } from 'lucide-react';
+
+const MODULE_ROLE_MAP = {
+  "Predictive Service Assurance": ["NOC", "Admin"],
+  "Churn Prediction & Retention AI": ["Care", "Admin"],
+  "Intelligent Customer Journeys": ["Care", "Admin"],
+  "AI-driven OSS/BSS Orchestration": ["NOC", "Admin"],
+  "Revenue Assurance & Leakage Analytics": ["Revenue", "Admin"]
+};
 
 export const GovernanceAudit = ({ onOpen360 }) => {
   const { user } = useAuth();
@@ -9,25 +17,34 @@ export const GovernanceAudit = ({ onOpen360 }) => {
   const [recommendations, setRecommendations] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [moduleFilter, setModuleFilter] = useState('');
   const [processingId, setProcessingId] = useState(null);
+  const [expandedAuditId, setExpandedAuditId] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const loadData = () => {
-    setLoading(true);
+  const loadData = (force = false) => {
+    if (force) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setErrorMsg('');
     Promise.all([
-      api.getRecommendations(statusFilter || undefined, moduleFilter || undefined),
-      api.getAuditTrail(moduleFilter || undefined)
+      api.getRecommendations(statusFilter || undefined, moduleFilter || undefined, Boolean(force)),
+      api.getAuditTrail(moduleFilter || undefined, undefined, Boolean(force))
     ])
       .then(([recs, audits]) => {
         setRecommendations(recs);
         setAuditLogs(audits);
       })
       .catch((err) => setErrorMsg(err.message))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   };
 
   useEffect(() => {
@@ -40,9 +57,9 @@ export const GovernanceAudit = ({ onOpen360 }) => {
     setErrorMsg('');
     try {
       await api.approveRecommendation(id, `Approved by ${user?.full_name} (${user?.role})`);
-      setSuccessMsg(`Recommendation #${id} approved & executed.`);
+      setSuccessMsg(`Recommendation #${id} approved & executed successfully.`);
       setRecommendations(prev => prev.map(r => r.id === id ? { ...r, status: 'EXECUTED' } : r));
-      api.getAuditTrail(moduleFilter || undefined).then(setAuditLogs);
+      api.getAuditTrail(moduleFilter || undefined, undefined, true).then(setAuditLogs);
     } catch (err) {
       setErrorMsg(err.message || 'Approval failed');
     } finally {
@@ -58,7 +75,7 @@ export const GovernanceAudit = ({ onOpen360 }) => {
       await api.rejectRecommendation(id, `Rejected by ${user?.full_name} (${user?.role})`);
       setSuccessMsg(`Recommendation #${id} rejected.`);
       setRecommendations(prev => prev.map(r => r.id === id ? { ...r, status: 'REJECTED' } : r));
-      api.getAuditTrail(moduleFilter || undefined).then(setAuditLogs);
+      api.getAuditTrail(moduleFilter || undefined, undefined, true).then(setAuditLogs);
     } catch (err) {
       setErrorMsg(err.message || 'Rejection failed');
     } finally {
@@ -69,68 +86,81 @@ export const GovernanceAudit = ({ onOpen360 }) => {
   const modules = [
     'Predictive Service Assurance',
     'Churn Prediction & Retention AI',
-    'Revenue Assurance & Leakage Analytics',
+    'Intelligent Customer Journeys',
     'AI-driven OSS/BSS Orchestration',
-    'Intelligent Customer Journeys'
+    'Revenue Assurance & Leakage Analytics'
   ];
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-[#1C1F27] border border-[#2C303C] rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="text-xs font-medium text-[#8B8F99]">Cross-cutting governance layer</div>
-          <h1 className="text-base font-bold text-[#EDEBE6] mt-0.5">
-            Human-in-the-Loop Governance & Immutable Audit Trail
+          <div className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Cross-cutting governance layer</div>
+          <h1 className="text-xl font-bold text-gray-900 mt-1">
+            Human-in-the-Loop Governance &amp; Immutable Audit Trail
           </h1>
-          <p className="text-xs text-[#8B8F99] mt-0.5">
-            All AI recommendations across all four scored engines require authorized domain sign-off before simulated execution.
+          <p className="text-xs text-gray-500 mt-1">
+            All AI recommendations across all five intelligence modules require authorized domain sign-off before simulated execution.
           </p>
         </div>
-        
-        {/* Tab Toggle */}
-        <div className="flex items-center space-x-1.5 bg-[#14161C] p-1 rounded border border-[#2C303C] shrink-0">
+
+        <div className="flex items-center gap-3 shrink-0">
           <button
-            onClick={() => setActiveTab('queue')}
-            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-              activeTab === 'queue' ? 'bg-[#232733] text-[#EDEBE6]' : 'text-[#8B8F99] hover:text-[#EDEBE6]'
-            }`}
+            onClick={() => loadData(true)}
+            disabled={loading || refreshing}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-60"
           >
-            Approval queue ({recommendations.filter(r => r.status === 'PENDING').length})
+            <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+            <span>{refreshing ? 'Refreshing...' : 'Refresh Logs'}</span>
           </button>
-          <button
-            onClick={() => setActiveTab('audit')}
-            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-              activeTab === 'audit' ? 'bg-[#232733] text-[#EDEBE6]' : 'text-[#8B8F99] hover:text-[#EDEBE6]'
-            }`}
-          >
-            Audit trail ({auditLogs.length})
-          </button>
+
+          {/* Tab Toggle — segmented control */}
+          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
+            {[
+              { key: 'queue', label: `Approval queue (${recommendations.filter(r => r.status === 'PENDING').length})` },
+              { key: 'audit', label: `Audit trail (${auditLogs.length})` }
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === tab.key
+                    ? 'bg-white text-blue-600 shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {successMsg && (
-        <div className="p-3 rounded bg-[#232733] border border-[#4FAE8C] text-[#4FAE8C] text-xs flex items-center space-x-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{successMsg}</span>
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center justify-between shadow-xs">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{successMsg}</span>
+          </div>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-3 rounded bg-[#232733] border border-[#C1514B] text-[#C1514B] text-xs">
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
           {errorMsg}
         </div>
       )}
 
       {/* Filter Row */}
-      <div className="flex flex-wrap items-center gap-3 bg-[#1C1F27] p-3 rounded-lg border border-[#2C303C] text-xs">
-        <span className="text-[#8B8F99] font-medium">Filter by module:</span>
+      <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-xl p-4 card-shadow text-xs">
+        <span className="text-gray-600 font-semibold">Filter by module:</span>
         <select
           value={moduleFilter}
           onChange={(e) => setModuleFilter(e.target.value)}
-          className="px-2.5 py-1 rounded bg-[#14161C] border border-[#2C303C] text-xs text-[#EDEBE6] focus:outline-none font-mono"
+          className="px-3.5 py-2 rounded-lg bg-slate-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-medium"
         >
-          <option value="">All 5 modules</option>
+          <option value="">All 5 Modules</option>
           {modules.map((m) => (
             <option key={m} value={m}>{m}</option>
           ))}
@@ -138,11 +168,11 @@ export const GovernanceAudit = ({ onOpen360 }) => {
 
         {activeTab === 'queue' && (
           <>
-            <span className="text-[#8B8F99] font-medium ml-2">Status:</span>
+            <span className="text-gray-600 font-semibold ml-2">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-2.5 py-1 rounded bg-[#14161C] border border-[#2C303C] text-xs text-[#EDEBE6] focus:outline-none font-mono"
+              className="px-3.5 py-2 rounded-lg bg-slate-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 transition-colors font-medium"
             >
               <option value="">All statuses</option>
               <option value="PENDING">Pending approval</option>
@@ -155,93 +185,116 @@ export const GovernanceAudit = ({ onOpen360 }) => {
 
       {/* View 1: Approval Queue */}
       {activeTab === 'queue' && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {recommendations.map((rec) => {
             const isPending = rec.status === 'PENDING';
+            const allowedRoles = MODULE_ROLE_MAP[rec.source_module] || ['Admin'];
+            const canApprove = user?.role === 'Admin' || allowedRoles.includes(user?.role);
+
+            const badgeClass =
+              rec.status === 'APPROVED' || rec.status === 'EXECUTED'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : rec.status === 'PENDING'
+                ? 'bg-amber-50 border-amber-200 text-amber-700'
+                : 'bg-rose-50 border-rose-200 text-rose-700';
 
             return (
               <div
                 key={rec.id}
-                className={`p-4 rounded-lg border transition-colors space-y-3 ${
-                  isPending 
-                    ? 'bg-[#232733] border-l-4 border-l-[#C9822E] border-[#2C303C]' 
-                    : 'bg-[#1C1F27] border-[#2C303C]'
+                className={`rounded-xl p-5 space-y-4 transition-colors ${
+                  isPending
+                    ? 'bg-white border border-gray-200 border-l-4 border-l-amber-500 card-shadow-md'
+                    : 'bg-white border border-gray-200 card-shadow'
                 }`}
               >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-[#2C303C] pb-2.5">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center space-x-2 text-xs font-mono text-[#8B8F99]">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2 text-xs font-mono text-gray-500">
                       <span>#{rec.id} &bull; {rec.source_module}</span>
                       <span>&bull; Target: {rec.target_entity_label}</span>
                     </div>
-                    <h3 className="text-sm font-semibold text-[#EDEBE6]">{rec.title}</h3>
+                    <h3 className="text-base font-bold text-gray-900">{rec.title}</h3>
                   </div>
 
                   <div className="flex items-center space-x-3 text-xs">
-                    <span className="font-mono text-[#8B8F99]">
+                    <span className="font-mono text-gray-500">
                       Confidence: {(rec.confidence_score * 100).toFixed(0)}%
                     </span>
-                    {/* Badge strictly for workflow state */}
-                    <span className={`px-2 py-0.5 rounded text-[11px] font-mono ${
-                      rec.status === 'PENDING'
-                        ? 'bg-[#14161C] text-[#C9822E] border border-[#C9822E]/40'
-                        : rec.status === 'EXECUTED'
-                        ? 'bg-[#14161C] text-[#4FAE8C] border border-[#4FAE8C]/40'
-                        : 'bg-[#14161C] text-[#C1514B] border border-[#C1514B]/40'
-                    }`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${badgeClass}`}>
                       {rec.status.toLowerCase()}
                     </span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded bg-[#14161C] border border-[#2C303C] space-y-1">
-                    <div className="text-[#8B8F99] font-medium">Proposed action</div>
-                    <p className="text-[#EDEBE6] font-medium">{rec.recommended_action}</p>
-                    <p className="text-[#8B8F99] text-[11px]">{rec.description}</p>
+                  <div className="bg-slate-50 border border-gray-200/80 rounded-xl p-3.5 space-y-1">
+                    <div className="text-gray-500 font-semibold uppercase tracking-wider text-[11px]">Proposed action</div>
+                    <p className="text-gray-900 font-bold">{rec.recommended_action}</p>
+                    <p className="text-gray-600 text-[11px] mt-1">{rec.description}</p>
                   </div>
 
-                  <div className="p-3 rounded bg-[#14161C] border border-[#2C303C] space-y-1">
-                    <div className="text-[#8B8F99] font-medium">Underlying signals</div>
-                    <div className="text-[#8B8F99] font-mono text-[11px] max-h-20 overflow-y-auto space-y-0.5">
+                  <div className="bg-slate-50 border border-gray-200/80 rounded-xl p-3.5 space-y-1">
+                    <div className="text-gray-500 font-semibold uppercase tracking-wider text-[11px]">Underlying signals</div>
+                    <div className="text-gray-600 font-mono text-[11px] max-h-24 overflow-y-auto space-y-0.5">
                       {rec.action_payload?.signals ? (
                         Array.isArray(rec.action_payload.signals) ? (
                           rec.action_payload.signals.map((s, idx) => (
-                            <div key={idx}>
-                              {typeof s === 'object' ? `${s.signal || s.factor || Object.keys(s)[0]}: ${s.value || s.detail || Object.values(s)[0]}` : s}
+                            <div key={idx} className="flex items-center justify-between border-b border-gray-200/40 py-0.5">
+                              <span>{s.signal || s.factor || Object.keys(s)[0]}: {s.value || s.detail || Object.values(s)[0]}</span>
+                              {s.weight && <span className="text-blue-600 font-semibold">{s.weight}</span>}
                             </div>
                           ))
                         ) : (
                           <pre>{JSON.stringify(rec.action_payload.signals, null, 2)}</pre>
                         )
                       ) : (
-                        <span>Verified by ML inference engine</span>
+                        <span>Verified by AI inference engine</span>
                       )}
                     </div>
                   </div>
                 </div>
 
                 {isPending && (
-                  <div className="pt-1 flex flex-col md:flex-row md:items-center justify-between gap-3 border-t border-[#2C303C]">
-                    <div className="text-xs text-[#8B8F99] font-mono">
-                      Authorized sign-off required (Active user: {user?.full_name} &bull; {user?.role})
+                  <div className="pt-2 flex flex-col md:flex-row md:items-center justify-between gap-3 border-t border-gray-100">
+                    <div className="text-xs text-gray-500 font-mono flex items-center gap-1.5">
+                      {canApprove ? (
+                        <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Authorized Sign-Off (Role: {user?.role})</span>
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-semibold flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-amber-600" />
+                          <span>Requires {allowedRoles.join(' or ')} Authority (Active: {user?.role})</span>
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center space-x-2.5">
                       <button
-                        disabled={processingId === rec.id}
+                        disabled={processingId === rec.id || !canApprove}
                         onClick={() => handleReject(rec.id)}
-                        className="px-3 py-1.5 bg-[#14161C] hover:bg-[#2C303C] text-[#C1514B] rounded text-xs font-semibold transition-colors border border-[#2C303C]"
+                        className={`px-3.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                          canApprove 
+                            ? 'border-rose-300 text-rose-700 hover:bg-rose-50 cursor-pointer' 
+                            : 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed'
+                        }`}
                       >
-                        Reject
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Reject</span>
                       </button>
 
                       <button
-                        disabled={processingId === rec.id}
+                        disabled={processingId === rec.id || !canApprove}
                         onClick={() => handleApprove(rec.id)}
-                        className="px-4 py-1.5 bg-[#14161C] hover:bg-[#2C303C] text-[#4FAE8C] rounded text-xs font-semibold transition-colors border border-[#2C303C]"
+                        className={`px-4 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5 ${
+                          canApprove
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
                       >
-                        {processingId === rec.id ? 'Executing...' : 'Approve & execute'}
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>{processingId === rec.id ? 'Executing...' : 'Approve & execute'}</span>
                       </button>
                     </div>
                   </div>
@@ -251,7 +304,7 @@ export const GovernanceAudit = ({ onOpen360 }) => {
           })}
 
           {recommendations.length === 0 && (
-            <div className="p-8 text-center text-[#8B8F99] text-xs bg-[#1C1F27] rounded border border-[#2C303C]">
+            <div className="p-12 text-center text-gray-500 text-xs bg-white rounded-xl border border-gray-200 card-shadow">
               No recommendations matching the active filter.
             </div>
           )}
@@ -260,49 +313,84 @@ export const GovernanceAudit = ({ onOpen360 }) => {
 
       {/* View 2: Audit Trail */}
       {activeTab === 'audit' && (
-        <div className="bg-[#1C1F27] border border-[#2C303C] rounded-lg overflow-hidden">
-          <div className="p-3.5 border-b border-[#2C303C] flex items-center justify-between text-xs text-[#8B8F99]">
-            <span className="font-medium text-[#EDEBE6]">Immutable governance audit log</span>
-            <span className="font-mono">{auditLogs.length} events recorded</span>
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden card-shadow">
+          <div className="flex items-center justify-between p-4 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900">Immutable governance audit log</h3>
+            <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full font-medium">{auditLogs.length} events recorded</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#14161C] border-b border-[#2C303C] text-[#8B8F99]">
+              <thead className="bg-slate-50 border-b border-gray-200">
                 <tr>
-                  <th className="p-3 font-medium">Timestamp</th>
-                  <th className="p-3 font-medium">Module</th>
-                  <th className="p-3 font-medium">Action taken</th>
-                  <th className="p-3 font-medium">Decision</th>
-                  <th className="p-3 font-medium">Responsible user</th>
-                  <th className="p-3 font-medium text-right">Confidence</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Timestamp</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Module</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Action taken</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Decision</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600">Responsible user</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 text-right">Confidence</th>
+                  <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-600 text-center">Receipt</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#2C303C] font-mono">
-                {auditLogs.map((a) => (
-                  <tr key={a.id} className="text-[#EDEBE6] hover:bg-[#14161C] transition-colors">
-                    <td className="p-3 text-[#8B8F99]">
-                      {new Date(a.timestamp).toLocaleString()}
-                    </td>
-                    <td className="p-3 font-sans font-medium">{a.source_module}</td>
-                    <td className="p-3 font-sans text-[#8B8F99] max-w-xs truncate">{a.action_taken}</td>
-                    <td className="p-3">
-                      {/* Badge strictly for workflow state */}
-                      <span className={`px-2 py-0.5 rounded text-[11px] ${
-                        a.decision === 'APPROVED' ? 'text-[#4FAE8C] bg-[#14161C] border border-[#4FAE8C]/40' : 'text-[#C1514B] bg-[#14161C] border border-[#C1514B]/40'
-                      }`}>
-                        {a.decision.toLowerCase()}
-                      </span>
-                    </td>
-                    <td className="p-3 font-sans">
-                      <div>{a.user_name}</div>
-                      <div className="text-[11px] text-[#8B8F99] font-mono">{a.user_role}</div>
-                    </td>
-                    <td className="p-3 text-right">
-                      {(a.confidence_score * 100).toFixed(0)}%
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-gray-100 font-sans">
+                {auditLogs.map((a) => {
+                  const isApproved = a.decision === 'APPROVED';
+                  const isExpanded = expandedAuditId === a.id;
+
+                  return (
+                    <React.Fragment key={a.id}>
+                      <tr 
+                        onClick={() => setExpandedAuditId(isExpanded ? null : a.id)}
+                        className="cursor-pointer transition-colors hover:bg-slate-50/80"
+                      >
+                        <td className="px-4 py-3.5 text-gray-500 font-mono text-[11px]">
+                          {new Date(a.timestamp).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3.5 font-semibold text-gray-900">{a.source_module}</td>
+                        <td className="px-4 py-3.5 text-gray-600 max-w-xs truncate">{a.action_taken}</td>
+                        <td className="px-4 py-3.5">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${
+                            isApproved
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border-rose-200'
+                          }`}>
+                            {isApproved && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                            <span>{a.decision.toLowerCase()}</span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="text-gray-900 font-medium">{a.user_name}</div>
+                          <div className="text-[11px] text-gray-500 font-mono">{a.user_role}</div>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            {(a.confidence_score * 100).toFixed(0)}%
+                          </span>
+                        </td>
+                        <td className="px-3 py-3.5 text-center text-gray-400">
+                          {isExpanded ? <ChevronUp className="w-4 h-4 inline" /> : <ChevronDown className="w-4 h-4 inline" />}
+                        </td>
+                      </tr>
+
+                      {isExpanded && (
+                        <tr className="bg-slate-50 border-b border-gray-200">
+                          <td colSpan={7} className="p-4 space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                              <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-1">
+                                <div className="font-semibold text-gray-700 uppercase tracking-wider text-[11px]">Original Signals Evaluated</div>
+                                <pre className="text-[11px] text-gray-600 whitespace-pre-wrap">{JSON.stringify(a.original_signals, null, 2)}</pre>
+                              </div>
+                              <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-1">
+                                <div className="font-semibold text-gray-700 uppercase tracking-wider text-[11px]">Downstream Execution Receipt</div>
+                                <pre className="text-[11px] text-emerald-700 whitespace-pre-wrap">{JSON.stringify(a.execution_result, null, 2)}</pre>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
