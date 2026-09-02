@@ -24,7 +24,7 @@ export const LoginPage = () => {
   const location = useLocation();
   const from = location.state?.from?.pathname || '/cockpit';
 
-  const [email, setEmail] = useState('admin@jeebr.in');
+  const [email, setEmail] = useState('admin@pmrg.in');
   const [password, setPassword] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');

@@ -7,7 +7,7 @@ import logoImg from '../../assets/logo_pmrg.png';
 export const LoginModal = () => {
   const { login, demoLogin, loading } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('executive@jeebr.in');
+  const [email, setEmail] = useState('executive@pmrg.in');
   const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
 
@@ -138,7 +138,7 @@ export const LoginModal = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-mono"
-                  placeholder="executive@jeebr.in"
+                  placeholder="executive@pmrg.in"
                 />
               </div>
 

@@ -24,8 +24,8 @@ async function capture() {
 
   // Pre-seed localStorage with admin token so user is immediately logged in
   await page.evaluateOnNewDocument((token, user) => {
-    localStorage.setItem('jeebr_token', token);
-    localStorage.setItem('jeebr_user', JSON.stringify(user));
+    localStorage.setItem('pmrg_token', token);
+    localStorage.setItem('pmrg_user', JSON.stringify(user));
   }, authData.access_token, {
     id: authData.user_id,
     email: authData.email,

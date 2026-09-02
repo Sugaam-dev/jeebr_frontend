@@ -70,13 +70,13 @@ const PERMISSION_MATRIX = {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('jeebr_user');
+      const saved = localStorage.getItem('pmrg_user');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
   });
-  const [token, setToken] = useState(() => localStorage.getItem('jeebr_token'));
+  const [token, setToken] = useState(() => localStorage.getItem('pmrg_token'));
   const [loading, setLoading] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
 
@@ -95,9 +95,9 @@ export const AuthProvider = ({ children }) => {
     setSessionExpired(false);
     try {
       const data = await api.signup(fullName, email, password, role);
-      localStorage.setItem('jeebr_token', data.access_token);
+      localStorage.setItem('pmrg_token', data.access_token);
       const userObj = { email: data.email, role: data.role, full_name: data.user_name };
-      localStorage.setItem('jeebr_user', JSON.stringify(userObj));
+      localStorage.setItem('pmrg_user', JSON.stringify(userObj));
       setToken(data.access_token);
       setUser(userObj);
       return data;
@@ -111,9 +111,9 @@ export const AuthProvider = ({ children }) => {
     setSessionExpired(false);
     try {
       const data = await api.login(email, password);
-      localStorage.setItem('jeebr_token', data.access_token);
+      localStorage.setItem('pmrg_token', data.access_token);
       const userObj = { email: data.email, role: data.role, full_name: data.user_name };
-      localStorage.setItem('jeebr_user', JSON.stringify(userObj));
+      localStorage.setItem('pmrg_user', JSON.stringify(userObj));
       setToken(data.access_token);
       setUser(userObj);
       return data;
@@ -127,9 +127,9 @@ export const AuthProvider = ({ children }) => {
     setSessionExpired(false);
     try {
       const data = await api.demoLogin(role);
-      localStorage.setItem('jeebr_token', data.access_token);
+      localStorage.setItem('pmrg_token', data.access_token);
       const userObj = { email: data.email, role: data.role, full_name: data.user_name };
-      localStorage.setItem('jeebr_user', JSON.stringify(userObj));
+      localStorage.setItem('pmrg_user', JSON.stringify(userObj));
       setToken(data.access_token);
       setUser(userObj);
       return data;
@@ -139,8 +139,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('jeebr_token');
-    localStorage.removeItem('jeebr_user');
+    localStorage.removeItem('pmrg_token');
+    localStorage.removeItem('pmrg_user');
     setToken(null);
     setUser(null);
     setSessionExpired(false);

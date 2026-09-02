@@ -5,7 +5,7 @@ const requestCache = new Map();
 const CACHE_TTL_MS = 20000; // 20 seconds cache TTL
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('jeebr_token');
+  const token = localStorage.getItem('pmrg_token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -14,8 +14,8 @@ function getAuthHeaders() {
 
 async function handleResponse(res) {
   if (res.status === 401) {
-    localStorage.removeItem('jeebr_token');
-    localStorage.removeItem('jeebr_user');
+    localStorage.removeItem('pmrg_token');
+    localStorage.removeItem('pmrg_user');
     window.dispatchEvent(new Event('auth-logout'));
   }
   if (!res.ok) {

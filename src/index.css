@@ -18,53 +18,53 @@
   --color-navy-700: #143AA2;
   --color-navy-border: #18378A;
 
-  --color-jeebr-base:    #F5F8FF;
-  --color-jeebr-sidebar: #071B63;
-  --color-jeebr-topbar:  #0A1F66;
-  --color-jeebr-surface: #FFFFFF;
-  --color-jeebr-raised:  #F8FAFD;
-  --color-jeebr-hover:   #F0F4FC;
+  --color-pmrg-base:    #F5F8FF;
+  --color-pmrg-sidebar: #071B63;
+  --color-pmrg-topbar:  #0A1F66;
+  --color-pmrg-surface: #FFFFFF;
+  --color-pmrg-raised:  #F8FAFD;
+  --color-pmrg-hover:   #F0F4FC;
 
-  --color-jeebr-border:  #E2E8F0;
-  --color-jeebr-accent:  #2463EB;
-  --color-jeebr-mid:     #1D4ED8;
-  --color-jeebr-bright:  #2563EB;
-  --color-jeebr-purple:  #635BFF;
-  --color-jeebr-cyan:    #00A8FF;
+  --color-pmrg-border:  #E2E8F0;
+  --color-pmrg-accent:  #2463EB;
+  --color-pmrg-mid:     #1D4ED8;
+  --color-pmrg-bright:  #2563EB;
+  --color-pmrg-purple:  #635BFF;
+  --color-pmrg-cyan:    #00A8FF;
 
-  --color-jeebr-text:    #0F172A;
-  --color-jeebr-muted:   #64748B;
-  --color-jeebr-faint:   #94A3B8;
+  --color-pmrg-text:    #0F172A;
+  --color-pmrg-muted:   #64748B;
+  --color-pmrg-faint:   #94A3B8;
 
-  --color-jeebr-ok:      #10B981;
-  --color-jeebr-warn:    #F59E0B;
-  --color-jeebr-crit:    #EF4444;
+  --color-pmrg-ok:      #10B981;
+  --color-pmrg-warn:    #F59E0B;
+  --color-pmrg-crit:    #EF4444;
 }
 
 :root {
-  --jeebr-base:    #F5F8FF;
-  --jeebr-sidebar: #071B63;
-  --jeebr-topbar:  #0A1F66;
-  --jeebr-surface: #FFFFFF;
-  --jeebr-border:  #E2E8F0;
-  --jeebr-accent:  #2463EB;
-  --jeebr-purple:  #635BFF;
-  --jeebr-text:    #0F172A;
-  --jeebr-muted:   #64748B;
+  --pmrg-base:    #F5F8FF;
+  --pmrg-sidebar: #071B63;
+  --pmrg-topbar:  #0A1F66;
+  --pmrg-surface: #FFFFFF;
+  --pmrg-border:  #E2E8F0;
+  --pmrg-accent:  #2463EB;
+  --pmrg-purple:  #635BFF;
+  --pmrg-text:    #0F172A;
+  --pmrg-muted:   #64748B;
 }
 
 @layer base {
   body {
     margin: 0;
-    background-color: var(--jeebr-base);
-    color: var(--jeebr-text);
+    background-color: var(--pmrg-base);
+    color: var(--pmrg-text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   *:focus-visible {
-    outline: 2px solid var(--jeebr-accent);
+    outline: 2px solid var(--pmrg-accent);
     outline-offset: 2px;
   }
 }
