@@ -17,9 +17,10 @@ dist-ssr/
 tests/
 capture_screenshots*
 debug_capture*
-*.png
-*.jpg
-*.jpeg
+
+# Do not ignore project assets
+!src/assets/**
+!public/**
 
 # Editor directories and files
 .vscode/*
