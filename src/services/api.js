@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.API_URL || 'https://mso.isp.backend.pmrgsolution.com';
+const API_BASE = import.meta.env.API_URL || 'https://mso.isp.backend.pmrgsolution.com/api';
 
 // In-memory cache for ultra-fast tab switches and responsive UI
 const requestCache = new Map();
