@@ -95,6 +95,7 @@ export default function App() {
             <Route path="/journeys" element={<CustomerJourneys />} />
             <Route path="/governance" element={<GovernanceAudit />} />
             <Route path="/customer360" element={<CustomerSearch />} />
+            <Route path="/customers" element={<CustomerSearch />} />
           </Route>
 
           {/* 404 Catch-All */}

@@ -7,6 +7,7 @@ import {
   CheckCircle2, RefreshCw, ArrowRight, ShieldCheck, Zap, Activity,
   ExternalLink, Terminal, ChevronRight, Check
 } from 'lucide-react';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 export const PilotBundle = () => {
   const { user } = useAuth();
@@ -77,6 +78,14 @@ export const PilotBundle = () => {
 
   return (
     <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
+      <Breadcrumbs 
+        items={[
+          { label: 'Pilot Bundle Trace: End-to-End Operating Loop', icon: Sparkles }
+        ]} 
+        backTo="/cockpit"
+        backLabel="Executive Cockpit"
+      />
+
       {/* Hero Header */}
       <div className="bg-gradient-to-r from-[#071B63] via-[#0A1F66] to-[#12347F] border border-[#152D75] rounded-2xl p-5 sm:p-6 md:p-8 text-white shadow-lg relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />

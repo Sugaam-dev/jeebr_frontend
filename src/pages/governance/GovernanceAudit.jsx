@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { CheckCircle2, ShieldCheck, XCircle, RefreshCw, Lock, ChevronDown, ChevronUp } from 'lucide-react';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 const MODULE_ROLE_MAP = {
   "Predictive Service Assurance": ["NOC", "Admin"],
@@ -93,6 +94,14 @@ export const GovernanceAudit = () => {
 
   return (
     <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
+      <Breadcrumbs 
+        items={[
+          { label: 'Human-in-the-Loop Governance & Audit', icon: ShieldCheck }
+        ]} 
+        backTo="/cockpit"
+        backLabel="Executive Cockpit"
+      />
+
       {/* Header */}
       <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

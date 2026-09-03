@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
-import { CheckCircle2, RefreshCw, ArrowRight } from 'lucide-react';
+import { CheckCircle2, RefreshCw, ArrowRight, GitBranch } from 'lucide-react';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 export const OrchestrationQueue = () => {
   const navigate = useNavigate();
@@ -57,6 +58,14 @@ export const OrchestrationQueue = () => {
 
   return (
     <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
+      <Breadcrumbs 
+        items={[
+          { label: 'AI-driven OSS/BSS Orchestration', icon: GitBranch }
+        ]} 
+        backTo="/cockpit"
+        backLabel="Executive Cockpit"
+      />
+
       {/* Header */}
       <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

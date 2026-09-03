@@ -47,6 +47,12 @@ export function clearApiCache() {
 }
 
 export const api = {
+  clearCache: () => {
+    requestCache.clear();
+  },
+  clearApiCache: () => {
+    requestCache.clear();
+  },
   signup: async (fullName, email, password, role = 'Viewer') => {
     clearApiCache();
     const res = await fetch(`${API_BASE}/auth/signup`, {
@@ -98,8 +104,10 @@ export const api = {
     return handleResponse(res);
   },
 
-  getAtRiskCustomers: async (minScore = 30, forceRefresh = false) => {
-    return cachedFetch(`${API_BASE}/churn/at-risk?min_score=${minScore}`, { headers: getAuthHeaders() }, forceRefresh);
+  getAtRiskCustomers: async (minScore = 30, customerType = null, forceRefresh = false) => {
+    let url = `${API_BASE}/churn/at-risk?min_score=${minScore}`;
+    if (customerType) url += `&customer_type=${encodeURIComponent(customerType)}`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   proposeRetentionAction: async (customerId, actionType, customNotes) => {
@@ -196,11 +204,14 @@ export const api = {
     return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
   },
 
-  getCustomers: async (search = '', locality = '', segment = '', forceRefresh = false) => {
-    let url = `${API_BASE}/customers?limit=60&`;
+  getCustomers: async (search = '', locality = '', segment = '', customerType = '', status = '', stage = '', forceRefresh = false) => {
+    let url = `${API_BASE}/customers?limit=100&`;
     if (search) url += `search=${encodeURIComponent(search)}&`;
     if (locality) url += `locality=${encodeURIComponent(locality)}&`;
     if (segment) url += `segment=${encodeURIComponent(segment)}&`;
+    if (customerType) url += `customer_type=${encodeURIComponent(customerType)}&`;
+    if (status) url += `status=${encodeURIComponent(status)}&`;
+    if (stage) url += `stage=${encodeURIComponent(stage)}&`;
     return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
   },
 

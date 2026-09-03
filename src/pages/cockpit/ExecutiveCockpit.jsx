@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { MumbaiNetworkMap } from '../../components/common/MumbaiNetworkMap';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 import { 
   AlertTriangle, 
   Activity, 
@@ -12,7 +13,13 @@ import {
   RefreshCw,
   ArrowUp,
   ArrowDown,
-  Sparkles
+  Sparkles,
+  Smartphone,
+  CreditCard,
+  Users,
+  ExternalLink,
+  Zap,
+  Info
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -34,6 +41,7 @@ export const ExecutiveCockpit = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [showArpuTooltip, setShowArpuTooltip] = useState(false);
 
   const loadData = (force = false) => {
     if (force) {
@@ -91,6 +99,8 @@ export const ExecutiveCockpit = () => {
 
   return (
     <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
+      <Breadcrumbs items={[{ label: 'Executive Cockpit', icon: Activity }]} />
+
       {/* Welcome Banner matching Reference Design */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-white border border-[#E2E8F0] rounded-2xl p-5 sm:p-6 lg:p-7 card-shadow">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
@@ -244,6 +254,254 @@ export const ExecutiveCockpit = () => {
               <CheckCircle2 className="w-3 h-3" />
               <span>4 sign-offs today</span>
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Prepaid & Postpaid Portfolio Split & Aggregate ARPU Card (70% Prepaid / 30% Postpaid) */}
+      <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-5 lg:p-6 card-shadow space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-600" />
+                Subscriber Base &amp; Aggregate ARPU Performance
+              </h3>
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
+                Indian Telecom Focus (70% Prepaid / 30% Postpaid)
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Aggregate revenue analytics tracking normalized 30-day recharge behavior vs postpaid billed collections across active subscriber cohorts.
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/customers?customer_type=Prepaid')}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5 text-emerald-600" />
+              <span>View Prepaid ({kpis.prepaid_subscribers_count || 700})</span>
+            </button>
+            <button
+              onClick={() => navigate('/customers?customer_type=Postpaid')}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
+              <span>View Postpaid ({kpis.postpaid_subscribers_count || 300})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Aggregate ARPU Comparison Grid: Overall vs Prepaid vs Postpaid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {/* Overall Blended ARPU */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 relative">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                <span>Overall Blended ARPU</span>
+                <button 
+                  onClick={() => setShowArpuTooltip(!showArpuTooltip)}
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                  title="ARPU: Average revenue generated per active subscriber during the selected period."
+                >
+                  <Info className="w-3.5 h-3.5 text-blue-600" />
+                </button>
+              </span>
+              <span className="text-[10px] font-semibold bg-gray-200/70 text-gray-700 px-1.5 py-0.5 rounded">
+                Active Base
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="text-2xl font-black text-gray-900 font-mono tracking-tight">
+                &#8377;{(kpis.overall_arpu || 512).toLocaleString()}
+              </span>
+              <span className="text-xs text-gray-500 font-medium">/mo per subscriber</span>
+            </div>
+            <div className="text-[11px] text-gray-500 mt-1 flex items-center justify-between">
+              <span>Total 30D Rev: &#8377;{(kpis.total_monthly_revenue || (kpis.overall_arpu * kpis.total_active_customers)).toLocaleString()}</span>
+              <span className="font-mono text-[10px] text-gray-400">Total Rev ÷ Active Sub</span>
+            </div>
+          </div>
+
+          {/* Prepaid ARPU (Indian Telecom Focus) */}
+          <div 
+            onClick={() => navigate('/customers?customer_type=Prepaid')}
+            className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 hover:border-emerald-300 transition-all cursor-pointer group relative"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Prepaid ARPU (30D)</span>
+                <span title="ARPU: Average revenue generated per active subscriber during the selected period.">
+                  <Info className="w-3.5 h-3.5 text-emerald-600" />
+                </span>
+              </span>
+              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-300">
+                70% Base
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="text-2xl font-black text-emerald-800 font-mono tracking-tight">
+                &#8377;{kpis.avg_prepaid_arpu || 295}
+              </span>
+              <span className="text-xs text-emerald-700 font-medium">/mo per prepaid user</span>
+            </div>
+            <div className="text-[11px] text-emerald-700 mt-1 flex items-center justify-between">
+              <span>Cohort Rev: &#8377;{(kpis.prepaid_revenue_30d || (kpis.avg_prepaid_arpu * (kpis.prepaid_subscribers_count || 700))).toLocaleString()}</span>
+              <span className="font-mono text-[10px] text-emerald-600">{kpis.prepaid_subscribers_count || 700} subscribers</span>
+            </div>
+          </div>
+
+          {/* Postpaid ARPU */}
+          <div 
+            onClick={() => navigate('/customers?customer_type=Postpaid')}
+            className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-200/80 hover:border-indigo-300 transition-all cursor-pointer group relative"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Postpaid ARPU (Billed)</span>
+                <span title="ARPU: Average revenue generated per active subscriber during the selected period.">
+                  <Info className="w-3.5 h-3.5 text-indigo-600" />
+                </span>
+              </span>
+              <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded border border-indigo-300">
+                30% Base
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="text-2xl font-black text-indigo-900 font-mono tracking-tight">
+                &#8377;{kpis.avg_postpaid_arpu ? kpis.avg_postpaid_arpu.toLocaleString() : '1,020'}
+              </span>
+              <span className="text-xs text-indigo-700 font-medium">/mo per account</span>
+            </div>
+            <div className="text-[11px] text-indigo-700 mt-1 flex items-center justify-between">
+              <span>Cohort Rev: &#8377;{(kpis.postpaid_revenue_30d || (kpis.avg_postpaid_arpu * (kpis.postpaid_subscribers_count || 300))).toLocaleString()}</span>
+              <span className="font-mono text-[10px] text-indigo-600">{kpis.postpaid_subscribers_count || 300} accounts</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Global ARPU Tooltip Callout */}
+        {showArpuTooltip && (
+          <div className="p-3 rounded-lg bg-gray-900 text-white text-xs flex items-start justify-between gap-3 animate-fadeIn">
+            <div className="space-y-1">
+              <div className="font-bold text-cyan-300 flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5" />
+                <span>ARPU Metric Definition:</span>
+              </div>
+              <p className="text-gray-300 text-[11px]">
+                ARPU: Average revenue generated per active subscriber during the selected period.
+              </p>
+              <p className="text-gray-400 text-[10px] font-mono">
+                Formula: Overall ARPU = Total Revenue during the period ÷ Average/Active Subscribers during the period. Not calculated by averaging sticker plan prices.
+              </p>
+            </div>
+            <button 
+              onClick={() => setShowArpuTooltip(false)}
+              className="text-gray-400 hover:text-white text-xs px-2 py-0.5 rounded bg-gray-800 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Dual Ratio Bar */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold">
+            <span className="text-emerald-700 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+              Prepaid Subscribers: 70% ({kpis.prepaid_subscribers_count || 700} Accounts)
+            </span>
+            <span className="text-indigo-700 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" />
+              Postpaid Accounts: 30% ({kpis.postpaid_subscribers_count || 300} Accounts)
+            </span>
+          </div>
+          <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden flex">
+            <div 
+              style={{ width: '70%' }} 
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full transition-all duration-500" 
+              title="70% Prepaid Subscribers"
+            />
+            <div 
+              style={{ width: '30%' }} 
+              className="bg-gradient-to-r from-indigo-500 to-blue-600 h-full transition-all duration-500" 
+              title="30% Postpaid Accounts"
+            />
+          </div>
+        </div>
+
+        {/* Detailed Breakdown Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          {/* Prepaid Stats Tile */}
+          <div 
+            onClick={() => navigate('/customers?customer_type=Prepaid')}
+            className="p-3.5 rounded-lg bg-emerald-50/60 border border-emerald-100 hover:border-emerald-300 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-100 text-emerald-700 rounded-md">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-gray-900 block">Prepaid Mobile Portfolio</span>
+                  <span className="text-[11px] text-gray-500">28d, 56d, 84d &amp; 365d packs • Daily 1.5-2.5GB FUP</span>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div className="mt-3 flex items-baseline justify-between border-t border-emerald-100/80 pt-2">
+              <div>
+                <span className="text-[11px] text-gray-500">Monthly ARPU (Normalized 30d)</span>
+                <div className="text-lg font-extrabold text-emerald-800 font-mono">
+                  &#8377;{kpis.avg_prepaid_arpu || 285}
+                  <span className="text-[11px] font-normal text-gray-500 ml-1">/mo</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] text-gray-500">Active Subscribers</span>
+                <div className="text-lg font-extrabold text-gray-900 font-mono">
+                  {kpis.prepaid_subscribers_count || 700}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Postpaid Stats Tile */}
+          <div 
+            onClick={() => navigate('/customers?customer_type=Postpaid')}
+            className="p-3.5 rounded-lg bg-indigo-50/60 border border-indigo-100 hover:border-indigo-300 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-indigo-100 text-indigo-700 rounded-md">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-gray-900 block">Postpaid &amp; Corporate Portfolio</span>
+                  <span className="text-[11px] text-gray-500">Monthly billing • Auto-debit NACH • Dedicated ILL</span>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div className="mt-3 flex items-baseline justify-between border-t border-indigo-100/80 pt-2">
+              <div>
+                <span className="text-[11px] text-gray-500">Monthly ARPU (Billed)</span>
+                <div className="text-lg font-extrabold text-indigo-800 font-mono">
+                  &#8377;{kpis.avg_postpaid_arpu ? kpis.avg_postpaid_arpu.toLocaleString() : '1,420'}
+                  <span className="text-[11px] font-normal text-gray-500 ml-1">/mo</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] text-gray-500">Active Accounts</span>
+                <div className="text-lg font-extrabold text-gray-900 font-mono">
+                  {kpis.postpaid_subscribers_count || 300}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

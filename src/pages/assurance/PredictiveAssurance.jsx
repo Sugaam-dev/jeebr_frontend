@@ -3,7 +3,8 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { api } from '../../services/api';
 import { MumbaiNetworkMap } from '../../components/common/MumbaiNetworkMap';
 import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
-import { CheckCircle2, RefreshCw, ArrowRight } from 'lucide-react';
+import { CheckCircle2, RefreshCw, ArrowRight, Activity, Users, ExternalLink } from 'lucide-react';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 export const PredictiveAssurance = () => {
   const navigate = useNavigate();
@@ -58,6 +59,12 @@ export const PredictiveAssurance = () => {
 
   return (
     <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
+      <Breadcrumbs 
+        items={[{ label: 'Predictive Service Assurance', icon: Activity }]} 
+        backTo="/cockpit" 
+        backLabel="Executive Cockpit" 
+      />
+
       {/* Header */}
       <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -181,11 +188,21 @@ export const PredictiveAssurance = () => {
         </div>
 
         {/* Right Column: Unified Explainability Inspector */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-5 space-y-3">
           {selectedNode && (
-            <ExplainabilityInspector
-              title={selectedNode.node_name}
-              subtitle={`${selectedNode.node_code} • ${selectedNode.area} • ${selectedNode.node_type}`}
+            <>
+              <button
+                onClick={() => navigate(`/customers?locality=${encodeURIComponent(selectedNode.area)}`)}
+                className="w-full py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-blue-600 flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>View {selectedNode.impacted_customers_count} Downstream Subscribers in {selectedNode.area}</span>
+                <ExternalLink className="w-3 h-3 text-blue-400" />
+              </button>
+
+              <ExplainabilityInspector
+                title={selectedNode.node_name}
+                subtitle={`${selectedNode.node_code} • ${selectedNode.area} • ${selectedNode.node_type}`}
               score={selectedNode.degradation_risk_score}
               scoreLabel="Degradation score"
               level={selectedNode.risk_level}
@@ -199,6 +216,7 @@ export const PredictiveAssurance = () => {
               customMetric={`${selectedNode.impacted_customers_count} (${selectedNode.impacted_corporate_count} ILL)`}
               customMetricLabel="Impacted accounts"
             />
+            </>
           )}
         </div>
 

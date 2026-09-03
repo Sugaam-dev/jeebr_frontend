@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Menu, 
   Search, 
-  Calendar, 
   ChevronDown, 
   Bell, 
   LogOut, 
@@ -22,17 +21,13 @@ export const Navbar = ({
   onToggleSidebar, 
   sidebarCollapsed, 
   onToggleMobileMenu, 
-  onOpen360Global,
-  onDateRangeChange
+  onOpen360Global
 }) => {
   const { user, demoLogin, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [dateRange, setDateRange] = useState('Today');
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeFilter, setActiveFilter] = useState('ALL');
-  const [filterToast, setFilterToast] = useState('');
 
   const [notifications, setNotifications] = useState([
     {
@@ -82,7 +77,6 @@ export const Navbar = ({
   ]);
 
   const notifRef = useRef(null);
-  const datePickerRef = useRef(null);
 
   // Global Ctrl+K / Cmd+K listener
   useEffect(() => {
@@ -106,9 +100,6 @@ export const Navbar = ({
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setShowNotifications(false);
       }
-      if (datePickerRef.current && !datePickerRef.current.contains(e.target)) {
-        setShowDatePicker(false);
-      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -121,29 +112,6 @@ export const Navbar = ({
     { label: 'Revenue Lead', role: 'Revenue' },
     { label: 'Admin', role: 'Admin' },
   ];
-
-  const dateOptions = [
-    'Today',
-    'Last 7 Days',
-    'Last 30 Days',
-    'This Quarter',
-    'Custom Range...'
-  ];
-
-  const handleSelectDateRange = (range) => {
-    setDateRange(range);
-    setShowDatePicker(false);
-    api.clearCache();
-    
-    // Dispatch global event for active page telemetry reload
-    window.dispatchEvent(new CustomEvent('date-range-change', { detail: { range } }));
-    if (onDateRangeChange) {
-      onDateRangeChange(range);
-    }
-
-    setFilterToast(`Telemetry filtered: ${range}`);
-    setTimeout(() => setFilterToast(''), 3000);
-  };
 
   const getInitials = (name) => {
     if (!name) return 'SO';
@@ -187,15 +155,6 @@ export const Navbar = ({
 
   return (
     <header className="h-16 bg-[#142C6F] border-b border-[#1B3679] flex items-center justify-between px-3 sm:px-5 lg:px-6 sticky top-0 z-30 select-none text-white shadow-sm transition-colors">
-      
-      {/* Toast feedback for filter change */}
-      {filterToast && (
-        <div className="absolute top-18 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2 rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150 flex items-center gap-2 font-medium">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-          <span>{filterToast}</span>
-        </div>
-      )}
-
       {/* Left: Single Hamburger & Search */}
       <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 max-w-xl">
         {/* Mobile Hamburger Drawer Trigger */}
@@ -238,40 +197,8 @@ export const Navbar = ({
         </button>
       </div>
 
-      {/* Right: Date Filter & Role Switcher & Notifications & User */}
+      {/* Right: Role Switcher & Notifications & User */}
       <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-        
-        {/* Working Date Range Filter Dropdown */}
-        <div className="relative" ref={datePickerRef}>
-          <button
-            onClick={() => setShowDatePicker(!showDatePicker)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#0F225A]/80 border border-[#1B3679] hover:bg-[#183685] hover:border-blue-400/50 text-xs text-blue-100 font-medium transition-all cursor-pointer shadow-inner"
-          >
-            <Calendar className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-            <span className="text-[11.5px] hidden sm:inline">{dateRange}</span>
-            <ChevronDown className={`w-3 h-3 text-blue-200/70 transition-transform ${showDatePicker ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showDatePicker && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 text-xs z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                Filter Telemetry Range
-              </div>
-              {dateOptions.map((range) => (
-                <button
-                  key={range}
-                  onClick={() => handleSelectDateRange(range)}
-                  className={`w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between cursor-pointer transition-colors ${
-                    dateRange === range ? 'text-blue-600 font-semibold bg-blue-50/60' : 'text-gray-700'
-                  }`}
-                >
-                  <span>{range}</span>
-                  {dateRange === range && <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Role Switcher Pills */}
         <div className="hidden xl:flex items-center bg-[#0F225A]/90 p-1 rounded-xl border border-[#1B3679] text-xs">

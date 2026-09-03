@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { api } from '../../services/api';
 import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
-import { CheckCircle2, ArrowRight, RefreshCw } from 'lucide-react';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
+import { CheckCircle2, ArrowRight, RefreshCw, ExternalLink, IndianRupee, AlertTriangle } from 'lucide-react';
 
 export const RevenueAssurance = () => {
   const navigate = useNavigate();
+  const outletCtx = useOutletContext();
+  const onOpen360 = outletCtx?.onOpen360;
+
   const [leakages, setLeakages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,6 +63,12 @@ export const RevenueAssurance = () => {
 
   return (
     <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
+      <Breadcrumbs 
+        items={[{ label: 'Revenue Assurance & Billing Analytics', icon: IndianRupee }]} 
+        backTo="/cockpit" 
+        backLabel="Executive Cockpit" 
+      />
+
       {/* Header */}
       <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -145,7 +155,21 @@ export const RevenueAssurance = () => {
                       }`}
                     >
                       <td className="px-4 py-3.5 font-sans">
-                        <div className="font-bold text-gray-900">{inv.customer_name}</div>
+                        <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                          <span>{inv.customer_name}</span>
+                          {onOpen360 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpen360(inv.customer_id);
+                              }}
+                              className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                              title="Open Customer 360"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                         <div className="text-[11px] text-gray-500 font-mono">{inv.invoice_code} &bull; {inv.locality}</div>
                       </td>
                       <td className="px-4 py-3.5 font-sans text-gray-700 font-medium">
@@ -168,11 +192,22 @@ export const RevenueAssurance = () => {
         </div>
 
         {/* Right Column: Unified Explainability Inspector */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-5 space-y-3">
           {selectedInv && (
-            <ExplainabilityInspector
-              title={`Invoice ${selectedInv.invoice_code}`}
-              subtitle={`${selectedInv.customer_name} • ${selectedInv.plan_name}`}
+            <>
+              {onOpen360 && (
+                <button
+                  onClick={() => onOpen360(selectedInv.customer_id)}
+                  className="w-full py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-blue-600 flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <span>Open Full Customer 360 Profile ({selectedInv.customer_name})</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              <ExplainabilityInspector
+                title={`Invoice ${selectedInv.invoice_code}`}
+                subtitle={`${selectedInv.customer_name} • ${selectedInv.plan_name}`}
               score={selectedInv.leakage_risk_score}
               scoreLabel="Anomaly likelihood"
               level={selectedInv.risk_level}
@@ -186,6 +221,7 @@ export const RevenueAssurance = () => {
               customMetric={`₹${selectedInv.leakage_amount.toLocaleString()}`}
               customMetricLabel="Quantified leakage"
             />
+            </>
           )}
         </div>
 

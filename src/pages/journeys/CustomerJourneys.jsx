@@ -4,8 +4,9 @@ import { api } from '../../services/api';
 import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
 import { 
   CheckCircle2, ExternalLink, RefreshCw, ArrowRight, Search, 
-  Layers, MessageSquare, Phone, Smartphone, Mail
+  Layers, MessageSquare, Phone, Smartphone, Mail, AlertTriangle 
 } from 'lucide-react';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 const STAGE_COLORS = {
   'Acquisition': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', active: 'bg-indigo-600 text-white' },
@@ -105,6 +106,15 @@ export const CustomerJourneys = () => {
 
   return (
     <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
+      <Breadcrumbs 
+        items={[
+          { label: 'Intelligent Customer Journeys', icon: Layers },
+          ...(activeStage !== 'All' ? [{ label: `Stage: ${activeStage}` }] : [])
+        ]} 
+        backTo="/cockpit" 
+        backLabel="Executive Cockpit" 
+      />
+
       {/* Header */}
       <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -332,11 +342,22 @@ export const CustomerJourneys = () => {
         </div>
 
         {/* Right Column: Explainability Inspector Panel */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className="lg:col-span-5 space-y-3">
           {selectedCust ? (
-            <ExplainabilityInspector
-              title={selectedCust.name}
-              subtitle={`${selectedCust.customer_code} • ${selectedCust.locality} • ${selectedCust.segment}`}
+            <>
+              {onOpen360 && (
+                <button
+                  onClick={() => onOpen360(selectedCust.customer_id)}
+                  className="w-full py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-blue-600 flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <span>Open Full Customer 360 Profile ({selectedCust.name})</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              <ExplainabilityInspector
+                title={selectedCust.name}
+                subtitle={`${selectedCust.customer_code} • ${selectedCust.locality} • ${selectedCust.segment}`}
               score={(selectedCust.confidence_score * 100).toFixed(0)}
               scoreLabel="NBA Confidence"
               level={selectedCust.current_stage}
@@ -350,6 +371,7 @@ export const CustomerJourneys = () => {
               customMetric={selectedCust.suggested_channel}
               customMetricLabel="Recommended Channel"
             />
+            </>
           ) : (
             <div className="p-8 text-center text-gray-500 bg-white rounded-xl border border-[#E2E8F0] card-shadow text-xs">
               Select a customer to inspect Next-Best-Action signals and propose to governance.
