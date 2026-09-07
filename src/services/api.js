@@ -1,13 +1,20 @@
-const API_BASE = import.meta.env.API_URL || 'https://mso.isp.backend.pmrgsolution.com/api';
+const API_BASE = import.meta.env.VITE_API_URL || (
+  typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000/api'
+    : 'https://mso.isp.backend.pmrgsolution.com/api'
+);
 
 // In-memory cache for ultra-fast tab switches and responsive UI
 const requestCache = new Map();
-const CACHE_TTL_MS = 20000; // 20 seconds cache TTL
+const inflightRequests = new Map();
+const CACHE_TTL_MS = 45000; // 45 seconds cache TTL
 
 function getAuthHeaders() {
   const token = localStorage.getItem('pmrg_token');
+  const market = localStorage.getItem('pmrg_market') || 'mumbai';
   return {
     'Content-Type': 'application/json',
+    'X-Market-Id': market,
     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
   };
 }
@@ -26,7 +33,8 @@ async function handleResponse(res) {
 }
 
 async function cachedFetch(url, options = {}, forceRefresh = false) {
-  const cacheKey = url;
+  const market = localStorage.getItem('pmrg_market') || 'mumbai';
+  const cacheKey = `${url}::market=${market}`;
   const now = Date.now();
   
   if (!forceRefresh && requestCache.has(cacheKey)) {
@@ -36,22 +44,39 @@ async function cachedFetch(url, options = {}, forceRefresh = false) {
     }
   }
 
-  const res = await fetch(url, options);
-  const data = await handleResponse(res);
-  requestCache.set(cacheKey, { timestamp: now, data });
-  return data;
+  // Deduplicate concurrent in-flight requests (prevents duplicate React renders from fetching twice)
+  if (!forceRefresh && inflightRequests.has(cacheKey)) {
+    return inflightRequests.get(cacheKey);
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const res = await fetch(url, options);
+      const data = await handleResponse(res);
+      requestCache.set(cacheKey, { timestamp: Date.now(), data });
+      return data;
+    } finally {
+      inflightRequests.delete(cacheKey);
+    }
+  })();
+
+  inflightRequests.set(cacheKey, fetchPromise);
+  return fetchPromise;
 }
 
 export function clearApiCache() {
   requestCache.clear();
+  inflightRequests.clear();
 }
 
 export const api = {
   clearCache: () => {
     requestCache.clear();
+    inflightRequests.clear();
   },
   clearApiCache: () => {
     requestCache.clear();
+    inflightRequests.clear();
   },
   signup: async (fullName, email, password, role = 'Viewer') => {
     clearApiCache();
@@ -104,8 +129,8 @@ export const api = {
     return handleResponse(res);
   },
 
-  getAtRiskCustomers: async (minScore = 30, customerType = null, forceRefresh = false) => {
-    let url = `${API_BASE}/churn/at-risk?min_score=${minScore}`;
+  getAtRiskCustomers: async (minScore = 30, customerType = null, forceRefresh = false, limit = 60) => {
+    let url = `${API_BASE}/churn/at-risk?min_score=${minScore}&limit=${limit}`;
     if (customerType) url += `&customer_type=${encodeURIComponent(customerType)}`;
     return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
   },
@@ -120,8 +145,8 @@ export const api = {
     return handleResponse(res);
   },
 
-  getJourneyNBAs: async (forceRefresh = false) => {
-    return cachedFetch(`${API_BASE}/journeys/next-best-actions`, { headers: getAuthHeaders() }, forceRefresh);
+  getJourneyNBAs: async (forceRefresh = false, limit = 60) => {
+    return cachedFetch(`${API_BASE}/journeys/next-best-actions?limit=${limit}`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   getJourneyFunnelSummary: async (forceRefresh = false) => {
@@ -138,12 +163,17 @@ export const api = {
     return handleResponse(res);
   },
 
-  getPilotBundleScenario: async (nodeCode = 'OLT-BND-01', forceRefresh = false) => {
-    return cachedFetch(`${API_BASE}/pilot-bundle/scenario?node_code=${encodeURIComponent(nodeCode)}`, { headers: getAuthHeaders() }, forceRefresh);
+  getMarkets: async () => {
+    return cachedFetch(`${API_BASE}/markets`, { headers: getAuthHeaders() });
   },
 
-  getOrchestrationQueue: async (forceRefresh = false) => {
-    return cachedFetch(`${API_BASE}/orchestration/queue`, { headers: getAuthHeaders() }, forceRefresh);
+  getPilotBundleScenario: async (nodeCode = null, forceRefresh = false) => {
+    const query = nodeCode ? `?node_code=${encodeURIComponent(nodeCode)}` : '';
+    return cachedFetch(`${API_BASE}/pilot-bundle/scenario${query}`, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  getOrchestrationQueue: async (forceRefresh = false, limit = 50) => {
+    return cachedFetch(`${API_BASE}/orchestration/queue?limit=${limit}`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   proposeOrchestration: async (ticketId, workflowAction) => {
@@ -156,8 +186,8 @@ export const api = {
     return handleResponse(res);
   },
 
-  getRevenueLeakages: async (forceRefresh = false) => {
-    return cachedFetch(`${API_BASE}/revenue/leakages`, { headers: getAuthHeaders() }, forceRefresh);
+  getRevenueLeakages: async (forceRefresh = false, limit = 50) => {
+    return cachedFetch(`${API_BASE}/revenue/leakages?limit=${limit}`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
   proposeRevenueRemediation: async (invoiceId, remediationAction) => {

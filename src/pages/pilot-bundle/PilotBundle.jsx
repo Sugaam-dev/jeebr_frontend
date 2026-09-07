@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useMarket } from '../../context/MarketContext';
 import { 
   Sparkles, Radio, UserMinus, Compass, ShieldAlert, GitBranch, 
   CheckCircle2, RefreshCw, ArrowRight, ShieldCheck, Zap, Activity,
@@ -11,6 +12,7 @@ import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 export const PilotBundle = () => {
   const { user } = useAuth();
+  const { currentMarket } = useMarket();
   const outletCtx = useOutletContext();
   const onOpen360 = outletCtx?.onOpen360;
 
@@ -29,7 +31,7 @@ export const PilotBundle = () => {
       setLoading(true);
     }
     setErrorMsg('');
-    api.getPilotBundleScenario('OLT-BND-01', Boolean(force))
+    api.getPilotBundleScenario(null, Boolean(force))
       .then(setScenarioData)
       .catch((err) => setErrorMsg(err.message))
       .finally(() => {
@@ -40,7 +42,7 @@ export const PilotBundle = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentMarket]);
 
   const handleApproveRecommendation = async (recId, moduleName) => {
     setApprovingModule(moduleName);

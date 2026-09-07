@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { MarketProvider } from './context/MarketContext';
 import { AppLayout } from './components/layout/AppLayout';
 
 // Public Marketing & Auth Pages
@@ -61,46 +62,48 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* Public Marketing Landing Page */}
-          <Route path="/" element={<LandingPage />} />
+        <MarketProvider>
+          <Routes>
+            {/* Public Marketing Landing Page */}
+            <Route path="/" element={<LandingPage />} />
 
-          {/* Public Authentication Pages (Redirect to dashboard if already authenticated) */}
-          <Route path="/login" element={
-            <PublicOnlyRoute>
-              <LoginPage />
-            </PublicOnlyRoute>
-          } />
-          
-          <Route path="/signup" element={
-            <PublicOnlyRoute>
-              <SignupPage />
-            </PublicOnlyRoute>
-          } />
+            {/* Public Authentication Pages (Redirect to dashboard if already authenticated) */}
+            <Route path="/login" element={
+              <PublicOnlyRoute>
+                <LoginPage />
+              </PublicOnlyRoute>
+            } />
+            
+            <Route path="/signup" element={
+              <PublicOnlyRoute>
+                <SignupPage />
+              </PublicOnlyRoute>
+            } />
 
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          {/* Protected Application Routes under AppLayout Shell */}
-          <Route element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="/cockpit" element={<ExecutiveCockpit />} />
-            <Route path="/pilot-bundle" element={<PilotBundle />} />
-            <Route path="/assurance" element={<PredictiveAssurance />} />
-            <Route path="/churn" element={<ChurnPrediction />} />
-            <Route path="/revenue" element={<RevenueAssurance />} />
-            <Route path="/orchestration" element={<OrchestrationQueue />} />
-            <Route path="/journeys" element={<CustomerJourneys />} />
-            <Route path="/governance" element={<GovernanceAudit />} />
-            <Route path="/customer360" element={<CustomerSearch />} />
-            <Route path="/customers" element={<CustomerSearch />} />
-          </Route>
+            {/* Protected Application Routes under AppLayout Shell */}
+            <Route element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }>
+              <Route path="/cockpit" element={<ExecutiveCockpit />} />
+              <Route path="/pilot-bundle" element={<PilotBundle />} />
+              <Route path="/assurance" element={<PredictiveAssurance />} />
+              <Route path="/churn" element={<ChurnPrediction />} />
+              <Route path="/revenue" element={<RevenueAssurance />} />
+              <Route path="/orchestration" element={<OrchestrationQueue />} />
+              <Route path="/journeys" element={<CustomerJourneys />} />
+              <Route path="/governance" element={<GovernanceAudit />} />
+              <Route path="/customer360" element={<CustomerSearch />} />
+              <Route path="/customers" element={<CustomerSearch />} />
+            </Route>
 
-          {/* 404 Catch-All */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+            {/* 404 Catch-All */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </MarketProvider>
       </AuthProvider>
     </BrowserRouter>
   );

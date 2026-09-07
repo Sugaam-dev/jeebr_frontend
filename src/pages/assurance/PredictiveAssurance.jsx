@@ -3,11 +3,13 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { api } from '../../services/api';
 import { MumbaiNetworkMap } from '../../components/common/MumbaiNetworkMap';
 import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
+import { useMarket } from '../../context/MarketContext';
 import { CheckCircle2, RefreshCw, ArrowRight, Activity, Users, ExternalLink } from 'lucide-react';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 export const PredictiveAssurance = () => {
   const navigate = useNavigate();
+  const { currentMarket, marketConfig } = useMarket();
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -15,6 +17,12 @@ export const PredictiveAssurance = () => {
   const [proposing, setProposing] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  const marketLocalities = new Set(marketConfig?.localities || []);
+  const marketPredictions = predictions.filter(p => {
+    if (p.market_id) return p.market_id === currentMarket;
+    return marketLocalities.has(p.area);
+  });
 
   const loadData = (force = false) => {
     if (force) {
@@ -25,10 +33,7 @@ export const PredictiveAssurance = () => {
     setErrorMsg('');
     api.getNodePredictions(Boolean(force))
       .then((data) => {
-        setPredictions(data);
-        if (data.length > 0) {
-          setSelectedNode((prev) => (prev ? data.find(d => d.node_id === prev.node_id) || data[0] : data[0]));
-        }
+        setPredictions(data || []);
       })
       .catch((err) => setErrorMsg(err.message))
       .finally(() => {
@@ -39,7 +44,17 @@ export const PredictiveAssurance = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentMarket]);
+
+  useEffect(() => {
+    if (marketPredictions.length > 0) {
+      if (!selectedNode || !marketLocalities.has(selectedNode.area)) {
+        setSelectedNode(marketPredictions[0]);
+      }
+    } else {
+      setSelectedNode(null);
+    }
+  }, [currentMarket, predictions]);
 
   const handleProposeDispatch = async () => {
     if (!selectedNode) return;
@@ -109,9 +124,9 @@ export const PredictiveAssurance = () => {
         </div>
       )}
 
-      {/* Top Mumbai Topology Map */}
+      {/* Top Topology Map */}
       <MumbaiNetworkMap
-        nodes={predictions}
+        nodes={marketPredictions}
         selectedNodeId={selectedNode?.node_id}
         onSelectNode={setSelectedNode}
       />
@@ -122,8 +137,8 @@ export const PredictiveAssurance = () => {
         {/* Left Column: Tabular Telemetry Grid */}
         <div className="lg:col-span-7 bg-white border border-[#E2E8F0] rounded-xl overflow-hidden card-shadow">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between text-xs">
-            <span className="font-semibold text-gray-900">Mumbai Node Telemetry Leaderboard</span>
-            <span className="font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-medium">{predictions.length} nodes monitored</span>
+            <span className="font-semibold text-gray-900">{marketConfig?.city || 'Market'} Node Telemetry Leaderboard</span>
+            <span className="font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-medium">{marketPredictions.length} nodes monitored</span>
           </div>
 
           <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
@@ -139,7 +154,7 @@ export const PredictiveAssurance = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 font-mono">
-                {predictions.map((p) => {
+                {marketPredictions.map((p) => {
                   const isSelected = selectedNode?.node_id === p.node_id;
                   const isCritical = p.degradation_risk_score >= 60;
                   const isMedium = p.degradation_risk_score >= 35 && p.degradation_risk_score < 60;

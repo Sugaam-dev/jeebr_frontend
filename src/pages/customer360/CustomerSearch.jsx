@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
+import { useMarket } from '../../context/MarketContext';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 import { 
   Search, 
@@ -20,6 +21,7 @@ export const CustomerSearch = () => {
   const onOpen360 = outletCtx?.onOpen360;
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { currentMarket, marketConfig } = useMarket();
 
   const paramType = searchParams.get('customer_type') || '';
   const paramStatus = searchParams.get('status') || '';
@@ -38,6 +40,12 @@ export const CustomerSearch = () => {
     setStatusFilter(searchParams.get('status') || '');
   }, [searchParams]);
 
+  const marketLocalities = new Set(marketConfig?.localities || []);
+  const marketCustomers = customers.filter(c => {
+    if (c.market_id) return c.market_id === currentMarket;
+    return marketLocalities.has(c.locality);
+  });
+
   const loadData = () => {
     setLoading(true);
     api.getCustomers(searchTerm, locality, segment, customerType, statusFilter)
@@ -45,6 +53,11 @@ export const CustomerSearch = () => {
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    setLocality('');
+    loadData();
+  }, [currentMarket]);
 
   useEffect(() => {
     loadData();
@@ -171,15 +184,10 @@ export const CustomerSearch = () => {
           onChange={(e) => setLocality(e.target.value)}
           className="w-full md:w-auto px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-medium shadow-xs"
         >
-          <option value="">All Mumbai Localities</option>
-          <option value="Bandra West">Bandra West</option>
-          <option value="Andheri East">Andheri East</option>
-          <option value="BKC">BKC</option>
-          <option value="Powai">Powai</option>
-          <option value="Lower Parel">Lower Parel</option>
-          <option value="Dadar">Dadar</option>
-          <option value="Malad West">Malad West</option>
-          <option value="Thane West">Thane West</option>
+          <option value="">All {marketConfig?.city || 'Market'} Localities</option>
+          {marketConfig?.localities?.map((loc) => (
+            <option key={loc} value={loc}>{loc}</option>
+          ))}
         </select>
 
         <select
@@ -223,7 +231,7 @@ export const CustomerSearch = () => {
             )}
           </div>
           <span className="font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full font-medium">
-            {loading ? 'Filtering...' : `${customers.length} subscribers found`}
+            {loading ? 'Filtering...' : `${marketCustomers.length} subscribers found`}
           </span>
         </div>
 
@@ -252,7 +260,7 @@ export const CustomerSearch = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-sans">
-              {customers.map((c) => {
+              {marketCustomers.map((c) => {
                 const isPrepaid = c.customer_type === 'Prepaid';
                 const isExpired = c.days_to_expiry < 0;
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { api } from '../../services/api';
 import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
+import { useMarket } from '../../context/MarketContext';
 import { 
   CheckCircle2, ExternalLink, RefreshCw, ArrowRight, Search, 
   Layers, MessageSquare, Phone, Smartphone, Mail, AlertTriangle 
@@ -21,6 +22,7 @@ export const CustomerJourneys = () => {
   const navigate = useNavigate();
   const outletCtx = useOutletContext();
   const onOpen360 = outletCtx?.onOpen360;
+  const { currentMarket, marketConfig } = useMarket();
 
   const [items, setItems] = useState([]);
   const [funnelData, setFunnelData] = useState(null);
@@ -46,7 +48,7 @@ export const CustomerJourneys = () => {
       api.getJourneyFunnelSummary(Boolean(force))
     ])
       .then(([nbaItems, funnel]) => {
-        setItems(nbaItems);
+        setItems(nbaItems || []);
         setFunnelData(funnel);
         if (nbaItems.length > 0) {
           setSelectedCust((prev) => (prev ? nbaItems.find(d => d.customer_id === prev.customer_id) || nbaItems[0] : nbaItems[0]));
@@ -61,7 +63,7 @@ export const CustomerJourneys = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentMarket]);
 
   const handlePropose = async () => {
     if (!selectedCust) return;
@@ -79,9 +81,26 @@ export const CustomerJourneys = () => {
     }
   };
 
+  const marketLocalities = new Set(marketConfig?.localities || []);
+  const marketItems = items.filter(i => {
+    if (i.market_id) return i.market_id === currentMarket;
+    return marketLocalities.has(i.locality);
+  });
+
+  useEffect(() => {
+    setLocalityFilter('');
+    if (marketItems.length > 0) {
+      if (!selectedCust || !marketLocalities.has(selectedCust.locality)) {
+        setSelectedCust(marketItems[0]);
+      }
+    } else {
+      setSelectedCust(null);
+    }
+  }, [currentMarket, items]);
+
   const stages = ['All', 'Acquisition', 'Install', 'Use', 'Renewal', 'Complaint', 'Win-back'];
 
-  const filtered = items.filter((i) => {
+  const filtered = marketItems.filter((i) => {
     const matchesStage = activeStage === 'All' || i.current_stage === activeStage;
     const matchesSearch = i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           i.customer_code.toLowerCase().includes(searchTerm.toLowerCase());
@@ -89,7 +108,7 @@ export const CustomerJourneys = () => {
     return matchesStage && matchesSearch && matchesLocality;
   });
 
-  const uniqueLocalities = Array.from(new Set(items.map((i) => i.locality))).filter(Boolean);
+  const uniqueLocalities = marketConfig?.localities || Array.from(new Set(marketItems.map((i) => i.locality))).filter(Boolean);
 
   const getChannelIcon = (channelStr = '') => {
     if (channelStr.toLowerCase().includes('phone') || channelStr.toLowerCase().includes('call')) {
@@ -254,7 +273,7 @@ export const CustomerJourneys = () => {
           onChange={(e) => setLocalityFilter(e.target.value)}
           className="w-full md:w-auto px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-medium shadow-xs shrink-0"
         >
-          <option value="">All Mumbai Localities</option>
+          <option value="">All {marketConfig?.city || 'Market'} Localities</option>
           {uniqueLocalities.map((loc) => (
             <option key={loc} value={loc}>{loc}</option>
           ))}

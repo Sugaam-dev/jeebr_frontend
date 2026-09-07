@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { api } from '../../services/api';
 import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
+import { useMarket } from '../../context/MarketContext';
 import { 
   Search, 
   CheckCircle2, 
@@ -21,6 +22,7 @@ export const ChurnPrediction = () => {
   const navigate = useNavigate();
   const outletCtx = useOutletContext();
   const onOpen360 = outletCtx?.onOpen360;
+  const { currentMarket, marketConfig } = useMarket();
 
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ export const ChurnPrediction = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentMarket]);
 
   const handleProposeSave = async () => {
     if (!selectedCust) return;
@@ -74,7 +76,24 @@ export const ChurnPrediction = () => {
     }
   };
 
-  const filtered = customers.filter((c) => {
+  const marketLocalities = new Set(marketConfig?.localities || []);
+  const marketCustomers = customers.filter(c => {
+    if (c.market_id) return c.market_id === currentMarket;
+    return marketLocalities.has(c.locality);
+  });
+
+  useEffect(() => {
+    setLocalityFilter('');
+    if (marketCustomers.length > 0) {
+      if (!selectedCust || !marketLocalities.has(selectedCust.locality)) {
+        setSelectedCust(marketCustomers[0]);
+      }
+    } else {
+      setSelectedCust(null);
+    }
+  }, [currentMarket, customers]);
+
+  const filtered = marketCustomers.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           c.customer_code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLocality = !localityFilter || c.locality === localityFilter;
@@ -82,9 +101,9 @@ export const ChurnPrediction = () => {
     return matchesSearch && matchesLocality && matchesType;
   });
 
-  const prepaidCount = customers.filter(c => c.customer_type === 'Prepaid').length;
-  const postpaidCount = customers.filter(c => c.customer_type === 'Postpaid').length;
-  const uniqueLocalities = Array.from(new Set(customers.map((c) => c.locality))).filter(Boolean);
+  const prepaidCount = marketCustomers.filter(c => c.customer_type === 'Prepaid').length;
+  const postpaidCount = marketCustomers.filter(c => c.customer_type === 'Postpaid').length;
+  const uniqueLocalities = marketConfig?.localities || Array.from(new Set(marketCustomers.map((c) => c.locality))).filter(Boolean);
 
   return (
     <div className="p-3 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl mx-auto">
@@ -203,7 +222,7 @@ export const ChurnPrediction = () => {
           onChange={(e) => setLocalityFilter(e.target.value)}
           className="w-full md:w-auto px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]/20 transition-colors font-medium shadow-xs"
         >
-          <option value="">All Mumbai Localities</option>
+          <option value="">All {marketConfig?.city || 'Market'} Localities</option>
           {uniqueLocalities.map((loc) => (
             <option key={loc} value={loc}>{loc}</option>
           ))}

@@ -11,9 +11,11 @@ import {
   Radio, 
   UserMinus, 
   IndianRupee, 
-  CheckCheck
+  CheckCheck,
+  MapPin
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useMarket } from '../../context/MarketContext';
 import { api } from '../../services/api';
 import logoImg from '../../assets/logo_pmrg.png';
 
@@ -24,6 +26,11 @@ export const Navbar = ({
   onOpen360Global
 }) => {
   const { user, demoLogin, logout } = useAuth();
+  const { currentMarket, switchMarket, availableMarkets, markets } = useMarket();
+  const marketList = availableMarkets || markets || [
+    { id: 'mumbai', name: 'Mumbai' },
+    { id: 'kolkata', name: 'Kolkata' }
+  ];
   const navigate = useNavigate();
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -44,7 +51,7 @@ export const Navbar = ({
     {
       id: 'notif-node-1',
       type: 'network',
-      title: 'Optical Attenuation Alert: Bandra West',
+      title: 'Optical Attenuation Alert: Hub Node',
       description: 'Rx power dropped to -29.8 dBm (critical fiber micro-bending).',
       time: '12m ago',
       unread: true,
@@ -199,6 +206,32 @@ export const Navbar = ({
 
       {/* Right: Role Switcher & Notifications & User */}
       <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+
+        {/* Market Switcher (Mumbai / Kolkata) */}
+        <div className="flex items-center bg-[#0F225A]/90 p-1 rounded-xl border border-[#1B3679] text-xs">
+          <span className="text-[9.5px] font-bold text-blue-300/60 px-2 uppercase tracking-wider flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-cyan-400" />
+            Market
+          </span>
+          {marketList.map((m) => {
+            const isActive = currentMarket === m.id;
+            const displayName = m.name || m.city || m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => switchMarket(m.id)}
+                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-cyan-600 text-white shadow-xs font-semibold'
+                    : 'text-blue-200/70 hover:text-white hover:bg-white/5'
+                }`}
+                title={`Switch operational market to ${displayName}`}
+              >
+                {displayName}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Role Switcher Pills */}
         <div className="hidden xl:flex items-center bg-[#0F225A]/90 p-1 rounded-xl border border-[#1B3679] text-xs">
