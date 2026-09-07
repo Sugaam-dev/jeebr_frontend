@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { ExplainabilityInspector } from '../../components/common/ExplainabilityInspector';
-import { CheckCircle2, RefreshCw, ArrowRight, GitBranch } from 'lucide-react';
+import { CheckCircle2, RefreshCw, ArrowRight, GitBranch, Ticket } from 'lucide-react';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 export const OrchestrationQueue = () => {
@@ -78,14 +78,23 @@ export const OrchestrationQueue = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => loadData(true)}
-          disabled={loading || refreshing}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-60"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-[#2463EB]' : ''}`} />
-          <span>{refreshing ? 'Refreshing Triage...' : 'Refresh Triage Queue'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/ticketing')}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 text-[#2463EB] text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer"
+          >
+            <Ticket className="w-3.5 h-3.5" />
+            <span>Regional Dispatch Board</span>
+          </button>
+          <button
+            onClick={() => loadData(true)}
+            disabled={loading || refreshing}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-60"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${refreshing ? 'animate-spin text-[#2463EB]' : ''}`} />
+            <span>{refreshing ? 'Refreshing Triage...' : 'Refresh Triage Queue'}</span>
+          </button>
+        </div>
       </div>
 
       {successMsg && (

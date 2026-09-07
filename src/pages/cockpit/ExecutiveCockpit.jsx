@@ -584,6 +584,7 @@ export const ExecutiveCockpit = () => {
                   'Churn Prediction & Retention AI': '/churn',
                   'Intelligent Customer Journeys': '/journeys',
                   'AI-driven OSS/BSS Orchestration': '/orchestration',
+                  'Automatic Ticketing & Dispatch': '/ticketing',
                   'Revenue Assurance & Leakage Analytics': '/revenue',
                   'Human-in-the-Loop AI Governance': '/governance'
                 };

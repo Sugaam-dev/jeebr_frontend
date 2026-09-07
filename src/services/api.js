@@ -247,6 +247,94 @@ export const api = {
 
   getCustomer360: async (customerId, forceRefresh = false) => {
     return cachedFetch(`${API_BASE}/customers/${customerId}/360`, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  // Automated Ticketing & Regional Resource Dispatch
+  getTickets: async (filters = {}, forceRefresh = false) => {
+    const limit = filters.limit || 250;
+    let url = `${API_BASE}/tickets?limit=${limit}&`;
+    if (filters.source) url += `source=${encodeURIComponent(filters.source)}&`;
+    if (filters.priority) url += `priority=${encodeURIComponent(filters.priority)}&`;
+    if (filters.approval_status) url += `approval_status=${encodeURIComponent(filters.approval_status)}&`;
+    if (filters.status) url += `status=${encodeURIComponent(filters.status)}&`;
+    if (filters.region) url += `region=${encodeURIComponent(filters.region)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  getTicketStats: async (forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/tickets/stats`, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  getResources: async (resourceType = null, region = null, forceRefresh = false) => {
+    let url = `${API_BASE}/tickets/resources?`;
+    if (resourceType) url += `resource_type=${encodeURIComponent(resourceType)}&`;
+    if (region) url += `region=${encodeURIComponent(region)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  getResourceTimeline: async (resourceId, forceRefresh = false) => {
+    return cachedFetch(`${API_BASE}/tickets/resources/${resourceId}/timeline`, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  createTicket: async (ticketData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tickets`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(ticketData)
+    });
+    return handleResponse(res);
+  },
+
+  approveTicket: async (ticketId, notes = '', resourceId = null) => {
+    clearApiCache();
+    const payload = { notes };
+    if (resourceId) {
+      payload.resource_id = Number(resourceId);
+    }
+    const res = await fetch(`${API_BASE}/tickets/${ticketId}/approve`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return handleResponse(res);
+  },
+
+  getTicketCallLogs: async (ticketId) => {
+    return cachedFetch(`${API_BASE}/tickets/${ticketId}/call-logs`, { headers: getAuthHeaders() }, true);
+  },
+
+  getRecentTicketCalls: async () => {
+    return cachedFetch(`${API_BASE}/tickets/calls/recent`, { headers: getAuthHeaders() }, true);
+  },
+
+  simulateTicketCall: async (ticketId) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tickets/${ticketId}/simulate-call`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  rejectTicket: async (ticketId, notes = '') => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tickets/${ticketId}/reject`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ notes })
+    });
+    return handleResponse(res);
+  },
+
+  resolveTicket: async (ticketId, notes = '') => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tickets/${ticketId}/resolve`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ notes })
+    });
+    return handleResponse(res);
   }
 };
 

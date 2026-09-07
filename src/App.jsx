@@ -21,6 +21,7 @@ import { OrchestrationQueue } from './pages/orchestration/OrchestrationQueue';
 import { CustomerJourneys } from './pages/journeys/CustomerJourneys';
 import { GovernanceAudit } from './pages/governance/GovernanceAudit';
 import { CustomerSearch } from './pages/customer360/CustomerSearch';
+import { AutomaticTicketing } from './pages/ticketing/AutomaticTicketing';
 
 // Protected Route Guard with optional RBAC checks
 function ProtectedRoute({ children, allowedRoles }) {
@@ -98,6 +99,7 @@ export default function App() {
               <Route path="/governance" element={<GovernanceAudit />} />
               <Route path="/customer360" element={<CustomerSearch />} />
               <Route path="/customers" element={<CustomerSearch />} />
+              <Route path="/ticketing" element={<AutomaticTicketing />} />
             </Route>
 
             {/* 404 Catch-All */}

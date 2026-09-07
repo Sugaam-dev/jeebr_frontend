@@ -9,6 +9,7 @@ const MODULE_ROLE_MAP = {
   "Churn Prediction & Retention AI": ["Care", "Admin"],
   "Intelligent Customer Journeys": ["Care", "Admin"],
   "AI-driven OSS/BSS Orchestration": ["NOC", "Admin"],
+  "Automatic Ticketing & Regional Dispatch": ["NOC", "Admin"],
   "Revenue Assurance & Leakage Analytics": ["Revenue", "Admin"]
 };
 
@@ -89,6 +90,7 @@ export const GovernanceAudit = () => {
     'Churn Prediction & Retention AI',
     'Intelligent Customer Journeys',
     'AI-driven OSS/BSS Orchestration',
+    'Automatic Ticketing & Regional Dispatch',
     'Revenue Assurance & Leakage Analytics'
   ];
 

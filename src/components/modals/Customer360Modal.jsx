@@ -401,31 +401,62 @@ export const Customer360Modal = ({ customerId, onClose }) => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     <span>Recent Incidents / Tickets ({data.recent_tickets?.length || 0})</span>
-                    <button
-                      onClick={() => {
-                        onClose();
-                        navigate('/orchestration');
-                      }}
-                      className="text-blue-600 hover:underline normal-case text-xs font-medium flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>OSS Queue</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          onClose();
+                          navigate('/ticketing');
+                        }}
+                        className="text-blue-600 hover:underline normal-case text-xs font-medium flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Auto-Ticketing</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        onClick={() => {
+                          onClose();
+                          navigate('/orchestration');
+                        }}
+                        className="text-gray-500 hover:text-gray-800 normal-case text-xs font-medium flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>OSS Queue</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
-                    {data.recent_tickets?.map((t) => (
-                      <div key={t.id} className="bg-white border border-gray-200 rounded-lg p-2.5 card-shadow">
-                        <div className="flex items-center justify-between font-mono text-xs">
-                          <span className="text-gray-900 font-semibold">{t.ticket_code}</span>
-                          <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                            t.status === 'Open' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
-                          }`}>
-                            {t.status}
-                          </span>
+                    {data.recent_tickets?.map((t) => {
+                      const statusBadge = {
+                        'Pending Approval': 'bg-amber-100 text-amber-800 border-amber-200',
+                        'Assigned': 'bg-blue-100 text-blue-800 border-blue-200',
+                        'Open': 'bg-rose-100 text-rose-800 border-rose-200',
+                        'In-Progress': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+                        'Resolved': 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                      }[t.status] || 'bg-gray-100 text-gray-700';
+
+                      return (
+                        <div key={t.id} className="bg-white border border-gray-200 rounded-lg p-2.5 card-shadow">
+                          <div className="flex items-center justify-between font-mono text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-gray-900 font-semibold">{t.ticket_code}</span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 bg-gray-100 rounded text-gray-600 border border-gray-200">{t.priority}</span>
+                            </div>
+                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${statusBadge}`}>
+                              {t.status}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 mt-1 text-[11px] leading-snug">{t.description}</p>
+                          {t.assigned_resource_name && (
+                            <div className="text-[10px] text-blue-600 mt-1 flex items-center gap-1 font-medium">
+                              <span>Assigned to:</span>
+                              <span className="font-semibold">{t.assigned_resource_name}</span>
+                              {t.region && <span className="text-gray-400 font-normal">({t.region})</span>}
+                            </div>
+                          )}
                         </div>
-                        <p className="text-gray-600 mt-0.5 text-[11px]">{t.description}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {(!data.recent_tickets || data.recent_tickets.length === 0) && (
                       <div className="text-gray-500 py-2">No recent tickets logged.</div>
                     )}

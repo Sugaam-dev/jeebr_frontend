@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   Search,
   Sparkles,
+  Ticket,
   X
 } from 'lucide-react';
 import logoImg from '../../assets/logo_pmrg.png';
@@ -41,6 +42,7 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
     {
       title: 'GOVERNED WORKFLOWS',
       items: [
+        { id: 'ticketing', label: 'Auto-Ticketing', icon: Ticket, subtitle: 'Regional auto-dispatch' },
         { id: 'journeys', label: 'Customer Journeys', icon: Compass, subtitle: 'Lifecycle Next-Best-Action' },
         { id: 'governance', label: 'Governance & Audits', icon: ShieldAlert, subtitle: 'Human sign-off queue' },
         { id: 'customer360', label: 'Customer 360', icon: Search, subtitle: 'Subscriber intelligence' },
