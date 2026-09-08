@@ -34,7 +34,8 @@ import {
   Radio,
   FileText,
   Sparkles,
-  Wrench
+  Wrench,
+  RotateCcw
 } from 'lucide-react';
 
 export const AutomaticTicketing = () => {
@@ -62,6 +63,13 @@ export const AutomaticTicketing = () => {
   const [selectedTechnicianId, setSelectedTechnicianId] = useState('');
   const [callSimulationState, setCallSimulationState] = useState('DELIVERED'); // 'CALLING', 'CONNECTED', 'DELIVERED'
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+
+  // POC Autonomous P3/P4 Dispatch Toggle State
+  const [autoDispatchEnabled, setAutoDispatchEnabled] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(false);
+  const [simulatingAlert, setSimulatingAlert] = useState(false);
+  const [resettingDemo, setResettingDemo] = useState(false);
+  const [unassignedP3P4Count, setUnassignedP3P4Count] = useState(0);
 
   // Resource Timeline Modal State
   const [selectedResourceTimeline, setSelectedResourceTimeline] = useState(null);
@@ -115,11 +123,89 @@ export const AutomaticTicketing = () => {
         setStats(statsData || null);
       })
       .catch(() => {});
+
+    api.getAutoDispatchSettings()
+      .then((data) => {
+        if (data) {
+          setAutoDispatchEnabled(Boolean(data.enabled));
+          setUnassignedP3P4Count(data.unassigned_p3_p4_count || 0);
+        }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
     loadAllData();
   }, []);
+
+  const handleToggleAutoDispatch = async () => {
+    const nextState = !autoDispatchEnabled;
+    setToggleLoading(true);
+    try {
+      const res = await api.setAutoDispatchSettings(nextState);
+      setAutoDispatchEnabled(res.enabled);
+      setUnassignedP3P4Count(res.unassigned_p3_p4_count);
+      if (nextState) {
+        showNotification(
+          `⚡ Autonomous Dispatch Active! ${res.dispatched_count || 0} P3/P4 incident tickets automatically assigned to regional engineers without authorization!`,
+          'success'
+        );
+      } else {
+        showNotification(
+          'Autonomous P3/P4 Dispatch paused. New P3/P4 incidents will queue in Pending Dispatch.',
+          'info'
+        );
+      }
+      loadAllData(true);
+    } catch (err) {
+      showNotification(err.message || 'Failed to toggle auto-dispatch', 'error');
+    } finally {
+      setToggleLoading(false);
+    }
+  };
+
+  const handleSimulateAiAlert = async (priority = 'P3') => {
+    setSimulatingAlert(true);
+    try {
+      const categories = ['Optical Telemetry', 'Speed', 'Hardware'];
+      const cat = categories[Math.floor(Math.random() * categories.length)];
+      const res = await api.simulateAiAlert({ priority, category: cat });
+      if (res.assigned_resource_name) {
+        showNotification(
+          `🤖 New AI ${res.priority} Alert (${res.ticket_code}) generated & ZERO-TOUCH AUTO-ASSIGNED to ${res.assigned_resource_name}!`,
+          'success'
+        );
+      } else {
+        showNotification(
+          `🤖 New AI ${res.priority} Alert (${res.ticket_code}) generated & queued in Pending Dispatch (Turn ON toggle to auto-assign!).`,
+          'info'
+        );
+      }
+      loadAllData(true);
+    } catch (err) {
+      showNotification(err.message || 'Failed to simulate AI alert', 'error');
+    } finally {
+      setSimulatingAlert(false);
+    }
+  };
+
+  const handleResetDemoState = async () => {
+    setResettingDemo(true);
+    try {
+      const res = await api.resetDemoState();
+      setAutoDispatchEnabled(res.enabled);
+      setUnassignedP3P4Count(res.unassigned_p3_p4_count);
+      showNotification(
+        '🔄 Demo State Reset! Toggle set to OFF and 6 P3/P4 incidents queued as Pending Dispatch for client demo.',
+        'info'
+      );
+      loadAllData(true);
+    } catch (err) {
+      showNotification(err.message || 'Failed to reset demo state', 'error');
+    } finally {
+      setResettingDemo(false);
+    }
+  };
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -324,10 +410,16 @@ export const AutomaticTicketing = () => {
     }
   };
 
+  // Unassigned P3/P4 count in current tickets list
+  const unassignedP3P4InList = tickets.filter(
+    (t) => ['P3', 'P4'].includes(t.priority) && !t.assigned_resource_id && !['Resolved', 'Closed', 'Rejected'].includes(t.status)
+  ).length;
+
   // Filtered tickets
   const filteredTickets = tickets.filter((t) => {
     if (activeTab === 'PENDING_APPROVAL' && t.approval_status !== 'PENDING_APPROVAL') return false;
-    if (activeTab === 'P3_P4' && !(['P3', 'P4'].includes(t.priority) && t.source !== 'INTERNAL')) return false;
+    if (activeTab === 'PENDING_DISPATCH' && !(['P3', 'P4'].includes(t.priority) && !t.assigned_resource_id && !['Resolved', 'Closed', 'Rejected'].includes(t.status))) return false;
+    if (activeTab === 'P3_P4' && !(['P3', 'P4'].includes(t.priority) && t.source !== 'INTERNAL' && t.assigned_resource_id)) return false;
     if (activeTab === 'INTERNAL' && t.source !== 'INTERNAL') return false;
     if (activeTab === 'RESOLVED' && t.status !== 'Resolved') return false;
     if (priorityFilter && t.priority !== priorityFilter) return false;
@@ -391,6 +483,93 @@ export const AutomaticTicketing = () => {
             <Plus className="w-3.5 h-3.5" />
             <span>Raise Incident Ticket</span>
           </button>
+        </div>
+      </div>
+
+      {/* POC Interactive Toggle Banner: Autonomous P3/P4 Auto-Dispatch */}
+      <div className="bg-white border-2 border-blue-200/80 rounded-xl p-4 sm:p-5 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="flex items-start gap-3.5">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+            autoDispatchEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-50 text-blue-600'
+          }`}>
+            <Zap className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                POC Feature Demonstration
+              </span>
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1.5 ${
+                autoDispatchEnabled 
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${autoDispatchEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                {autoDispatchEnabled ? 'Autonomous Dispatch: ACTIVE (Zero-Touch)' : 'Autonomous Dispatch: PAUSED (Manual Queuing)'}
+              </span>
+              {unassignedP3P4InList > 0 && (
+                <span className="text-[11px] font-bold bg-rose-50 text-rose-700 px-2.5 py-0.5 rounded-full border border-rose-200 animate-pulse">
+                  {unassignedP3P4InList} P3/P4 Incidents Awaiting Auto-Dispatch
+                </span>
+              )}
+            </div>
+            <h3 className="text-sm font-bold text-gray-900 mt-1.5">
+              Zero-Touch Auto-Dispatch for P3 &amp; P4 Predictive Alerts &amp; Tickets
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5 max-w-2xl">
+              When toggled ON, AI automatically assigns regional field engineers for P3 &amp; P4 incidents immediately without requiring human authorization. High-impact P1 &amp; P2 tickets remain gated for managerial sign-off.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0 self-end md:self-center flex-wrap">
+          {/* Reset Demo State Button */}
+          <button
+            onClick={handleResetDemoState}
+            disabled={resettingDemo || loading}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
+            title="Reset to initial state with unassigned P3/P4 tickets for client demo"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 text-amber-600 ${resettingDemo ? 'animate-spin' : ''}`} />
+            <span>{resettingDemo ? 'Resetting...' : 'Reset for Demo'}</span>
+          </button>
+
+          {/* Simulate AI Alert Button */}
+          <button
+            onClick={() => handleSimulateAiAlert('P3')}
+            disabled={simulatingAlert || loading}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
+            title="Simulate incoming AI predicted incident/alert"
+          >
+            <Sparkles className={`w-3.5 h-3.5 text-blue-600 ${simulatingAlert ? 'animate-spin' : ''}`} />
+            <span>{simulatingAlert ? 'Predicting...' : 'Simulate AI Alert (P3)'}</span>
+          </button>
+
+          {/* Interactive Toggle Switch */}
+          <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 p-1.5 rounded-xl shadow-2xs">
+            <span className="text-xs font-bold text-gray-700 select-none pl-1">
+              Auto-Dispatch
+            </span>
+            <button
+              type="button"
+              onClick={handleToggleAutoDispatch}
+              disabled={toggleLoading}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                autoDispatchEnabled ? 'bg-emerald-600' : 'bg-gray-300'
+              }`}
+              role="switch"
+              aria-checked={autoDispatchEnabled}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                  autoDispatchEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <span className={`text-[11px] font-mono font-bold pr-1 min-w-[24px] ${autoDispatchEnabled ? 'text-emerald-700' : 'text-gray-400'}`}>
+              {toggleLoading ? '...' : autoDispatchEnabled ? 'ON' : 'OFF'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -518,6 +697,17 @@ export const AutomaticTicketing = () => {
                 }`}
               >
                 All ({displayStats.total_tickets})
+              </button>
+              <button
+                onClick={() => setActiveTab('PENDING_DISPATCH')}
+                className={`px-3 py-1.5 rounded-md font-semibold cursor-pointer transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === 'PENDING_DISPATCH' ? 'bg-blue-600 text-white shadow-xs' : 'text-blue-900 hover:text-blue-950'
+                }`}
+              >
+                <span>Pending Dispatch</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'PENDING_DISPATCH' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'}`}>
+                  {unassignedP3P4InList}
+                </span>
               </button>
               <button
                 onClick={() => setActiveTab('PENDING_APPROVAL')}
@@ -693,6 +883,10 @@ export const AutomaticTicketing = () => {
                             <span className="bg-rose-50 text-rose-700 font-semibold px-2 py-0.5 rounded-full text-[10px] border border-rose-200">
                               Rejected
                             </span>
+                          ) : !t.assigned_resource_id ? (
+                            <span className="bg-amber-50 text-amber-700 font-medium px-2 py-0.5 rounded-full text-[10px] border border-amber-200 inline-flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-amber-500" /> Pending Auto-Assign
+                            </span>
                           ) : (
                             <span className="bg-blue-50 text-blue-700 font-medium px-2 py-0.5 rounded-full text-[10px] border border-blue-100 inline-flex items-center gap-1">
                               <Zap className="w-3 h-3 text-blue-500" /> Zero-Touch Auto
@@ -702,6 +896,17 @@ export const AutomaticTicketing = () => {
 
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {!isPending && !t.assigned_resource_id && ['P3', 'P4'].includes(t.priority) && (
+                              <button
+                                onClick={handleToggleAutoDispatch}
+                                className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[11px] font-semibold cursor-pointer transition-colors flex items-center gap-1"
+                                title="Turn ON Autonomous Dispatch to auto-assign"
+                              >
+                                <Zap className="w-3 h-3 text-blue-600" />
+                                <span>Auto-Assign</span>
+                              </button>
+                            )}
+
                             {isPending && (
                               <>
                                 <button

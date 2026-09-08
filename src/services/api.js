@@ -265,6 +265,48 @@ export const api = {
     return cachedFetch(`${API_BASE}/tickets/stats`, { headers: getAuthHeaders() }, forceRefresh);
   },
 
+  getAutoDispatchSettings: async () => {
+    return cachedFetch(`${API_BASE}/tickets/auto-dispatch-settings`, { headers: getAuthHeaders() }, true);
+  },
+
+  setAutoDispatchSettings: async (enabled) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tickets/auto-dispatch-settings`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ enabled })
+    });
+    return handleResponse(res);
+  },
+
+  forceAutoDispatchNow: async () => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tickets/auto-dispatch-now`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  simulateAiAlert: async (data = {}) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tickets/simulate-ai-alert`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  resetDemoState: async () => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tickets/reset-demo-state`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
   getResources: async (resourceType = null, region = null, forceRefresh = false) => {
     let url = `${API_BASE}/tickets/resources?`;
     if (resourceType) url += `resource_type=${encodeURIComponent(resourceType)}&`;
