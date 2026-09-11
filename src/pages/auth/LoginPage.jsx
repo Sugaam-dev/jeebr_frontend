@@ -19,13 +19,13 @@ import {
 import logoImg from '../../assets/logo_pmrg.png';
 
 export const LoginPage = () => {
-  const { login, demoLogin, loading, sessionExpired, clearSessionExpired } = useAuth();
+  const { login, loading, sessionExpired, clearSessionExpired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/cockpit';
 
-  const [email, setEmail] = useState('admin@pmrg.in');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
@@ -44,17 +44,6 @@ export const LoginPage = () => {
       navigate(from, { replace: true });
     } catch (err) {
       setError(err.message || 'Invalid email or password. Please check your credentials.');
-    }
-  };
-
-  const handleAdminDemo = async () => {
-    setError('');
-    clearSessionExpired();
-    try {
-      await demoLogin('Admin');
-      navigate(from, { replace: true });
-    } catch (err) {
-      setError(err.message || 'Admin demo login failed.');
     }
   };
 
@@ -115,32 +104,15 @@ export const LoginPage = () => {
             </div>
           </div>
 
-          {/* Clean 1-Click Admin Demo Button (Only Admin Kept) */}
+          {/* Enterprise Security Architecture */}
           <div className="relative z-10 space-y-2 pt-4 border-t border-blue-900/60">
             <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
-              <span>Instant 1-Click Demo:</span>
+              <ShieldCheck className="w-3.5 h-3.5 text-cyan-300" />
+              <span>Role-Based Access Control &amp; Security:</span>
             </div>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleAdminDemo}
-              className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-blue-600/40 to-cyan-600/30 hover:from-blue-600/60 hover:to-cyan-600/50 border border-cyan-400/40 hover:border-cyan-300 transition-all flex items-center justify-between group cursor-pointer shadow-lg hover:shadow-cyan-500/20"
-            >
-              <div className="space-y-0.5">
-                <div className="text-xs font-bold text-white flex items-center gap-2">
-                  <span>Administrator (Full Access)</span>
-                  <span className="text-[9px] bg-cyan-400 text-[#071B63] font-extrabold px-2 py-0.2 rounded-full uppercase tracking-wider">
-                    Recommended
-                  </span>
-                </div>
-                <p className="text-[11px] text-blue-200/70 leading-snug">
-                  Explore all 5 scored engines, review sign-offs &amp; audit trails with full authority.
-                </p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-cyan-300 shrink-0 ml-2 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <div className="p-3.5 rounded-2xl bg-blue-950/40 border border-cyan-400/20 text-[11px] text-blue-200/80 leading-relaxed">
+              Strict cryptographic verification, JWT session expiration, role-segregated authorization boundaries, and immutable governance audit trails.
+            </div>
           </div>
 
         </div>
@@ -271,9 +243,6 @@ export const LoginPage = () => {
                 Create Account
               </Link>
             </p>
-            <div className="text-[11px] text-gray-400 font-mono">
-              Default admin seed: <span className="text-gray-700 font-bold">admin123</span>
-            </div>
           </div>
 
         </div>

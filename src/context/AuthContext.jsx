@@ -138,7 +138,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // Best-effort
+    }
     localStorage.removeItem('pmrg_token');
     localStorage.removeItem('pmrg_user');
     setToken(null);

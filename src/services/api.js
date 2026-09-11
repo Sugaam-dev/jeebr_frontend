@@ -51,7 +51,11 @@ async function cachedFetch(url, options = {}, forceRefresh = false) {
 
   const fetchPromise = (async () => {
     try {
-      const res = await fetch(url, options);
+      const mergedOptions = {
+        credentials: 'include',
+        ...options
+      };
+      const res = await fetch(url, mergedOptions);
       const data = await handleResponse(res);
       requestCache.set(cacheKey, { timestamp: Date.now(), data });
       return data;
@@ -69,6 +73,15 @@ export function clearApiCache() {
   inflightRequests.clear();
 }
 
+async function secureFetch(url, options = {}) {
+  const merged = {
+    credentials: 'include',
+    ...options
+  };
+  const res = await fetch(url, merged);
+  return handleResponse(res);
+}
+
 export const api = {
   clearCache: () => {
     requestCache.clear();
@@ -80,22 +93,32 @@ export const api = {
   },
   signup: async (fullName, email, password, role = 'Viewer') => {
     clearApiCache();
-    const res = await fetch(`${API_BASE}/auth/signup`, {
+    return secureFetch(`${API_BASE}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ full_name: fullName, email, password, role })
     });
-    return handleResponse(res);
   },
 
   login: async (email, password) => {
     clearApiCache();
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    return secureFetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    return handleResponse(res);
+  },
+
+  logout: async () => {
+    clearApiCache();
+    try {
+      await secureFetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+    } catch {
+      // Best-effort logout on backend
+    }
   },
 
   getUsers: async () => {
@@ -104,11 +127,10 @@ export const api = {
 
   demoLogin: async (role) => {
     clearApiCache();
-    const res = await fetch(`${API_BASE}/auth/demo-login/${role}`, {
+    return secureFetch(`${API_BASE}/auth/demo-login/${role}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
-    return handleResponse(res);
   },
 
   getCockpitSummary: async (forceRefresh = false) => {

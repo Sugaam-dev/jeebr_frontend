@@ -304,6 +304,10 @@ export const PilotBundle = () => {
                           <Check className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Field dispatch approved &amp; executed</span>
                         </div>
+                      ) : user?.role === 'Viewer' ? (
+                        <div className="w-full py-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-xs font-medium text-center">
+                          Read-Only (Requires NOC / Admin)
+                        </div>
                       ) : (
                         <button
                           onClick={() => handleApproveRecommendation(1, 'Assurance')}
@@ -328,6 +332,10 @@ export const PilotBundle = () => {
                         <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center gap-1.5">
                           <Check className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Customer save offer approved &amp; sent</span>
+                        </div>
+                      ) : user?.role === 'Viewer' ? (
+                        <div className="w-full py-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-xs font-medium text-center">
+                          Read-Only (Requires Care / Admin)
                         </div>
                       ) : (
                         <button

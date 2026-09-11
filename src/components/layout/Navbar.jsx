@@ -25,7 +25,7 @@ export const Navbar = ({
   onToggleMobileMenu, 
   onOpen360Global
 }) => {
-  const { user, demoLogin, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { currentMarket, switchMarket, availableMarkets, markets } = useMarket();
   const marketList = availableMarkets || markets || [
     { id: 'mumbai', name: 'Mumbai' },
@@ -111,14 +111,6 @@ export const Navbar = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const demoRoles = [
-    { label: 'Executive', role: 'Executive' },
-    { label: 'NOC Lead', role: 'NOC' },
-    { label: 'Care Lead', role: 'Care' },
-    { label: 'Revenue Lead', role: 'Revenue' },
-    { label: 'Admin', role: 'Admin' },
-  ];
 
   const getInitials = (name) => {
     if (!name) return 'SO';
@@ -228,27 +220,6 @@ export const Navbar = ({
                 title={`Switch operational market to ${displayName}`}
               >
                 {displayName}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Role Switcher Pills */}
-        <div className="hidden xl:flex items-center bg-[#0F225A]/90 p-1 rounded-xl border border-[#1B3679] text-xs">
-          <span className="text-[9.5px] font-bold text-blue-300/60 px-2 uppercase tracking-wider">Role</span>
-          {demoRoles.map((r) => {
-            const isActive = user?.role === r.role;
-            return (
-              <button
-                key={r.role}
-                onClick={() => demoLogin(r.role)}
-                className={`px-2.5 py-0.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-[#2563EB] text-white shadow-xs font-semibold'
-                    : 'text-blue-200/70 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {r.label}
               </button>
             );
           })}

@@ -713,7 +713,7 @@ export const LandingPage = () => {
               onClick={() => navigate('/login')}
               className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-white/15 hover:bg-white/20 border border-white/30 text-white text-sm font-semibold transition-colors cursor-pointer"
             >
-              Sign In to Demo
+              Sign In
             </button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { 
   ShieldAlert, 
   Sparkles, 
@@ -29,6 +30,7 @@ export const ExplainabilityInspector = ({
   customMetric,
   customMetricLabel
 }) => {
+  const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState(null);
 
@@ -179,7 +181,12 @@ export const ExplainabilityInspector = ({
         </p>
 
         <div className="pt-1">
-          {isPending ? (
+          {user?.role === 'Viewer' ? (
+            <div className="w-full py-2.5 px-3 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center gap-2 select-none">
+              <ShieldAlert className="w-4 h-4 text-slate-400" />
+              <span>Read-Only Client Mode (Action Proposing Restricted)</span>
+            </div>
+          ) : isPending ? (
             <button
               disabled
               className="w-full py-2.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center justify-center gap-2 cursor-not-allowed"
