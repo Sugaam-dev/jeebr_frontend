@@ -29,6 +29,19 @@ import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 
+const MARKET_LOCALITIES = {
+  mumbai: [
+    'Bandra West', 'Andheri East', 'BKC', 'Powai', 
+    'Lower Parel', 'Dadar', 'Malad West', 'Thane West',
+    'Juhu', 'Worli', 'Borivali', 'Ghatkopar'
+  ],
+  kolkata: [
+    'Salt Lake Sector V', 'Park Street', 'New Town', 'Ballygunge',
+    'Howrah', 'Jadavpur', 'Behala', 'Dum Dum',
+    'Alipore', 'Gariahat', 'Rajarhat', 'Shyambazar'
+  ]
+};
+
 export function RoleManagement({ defaultTab }) {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -172,13 +185,17 @@ export function RoleManagement({ defaultTab }) {
   // -------------------------------------------------------------
   const openCreateUserModal = () => {
     const defaultR = assignableRoles.length > 0 ? assignableRoles[0].name : 'Viewer';
+    const currentMarket = localStorage.getItem('mso_market') || 'mumbai';
     setNewUser({
       full_name: '',
       email: '',
       password: '',
       confirm_password: '',
       role: defaultR,
-      is_active: true
+      is_active: true,
+      phone: '+91 98200 12345',
+      market_id: currentMarket,
+      region: currentMarket === 'kolkata' ? 'Salt Lake Sector V' : 'Bandra West'
     });
     setCreateUserError('');
     setIsCreateUserModalOpen(true);
@@ -225,7 +242,10 @@ export function RoleManagement({ defaultTab }) {
         email: newUser.email.trim().toLowerCase(),
         password: newUser.password,
         role: newUser.role,
-        is_active: newUser.is_active
+        is_active: newUser.is_active,
+        phone: newUser.phone?.trim() || '+91 98200 12345',
+        region: newUser.region || (newUser.market_id === 'kolkata' ? 'Salt Lake Sector V' : 'Bandra West'),
+        market_id: newUser.market_id || 'mumbai'
       };
 
       const createdUser = await api.adminCreateUser(payload);
@@ -1271,6 +1291,73 @@ export function RoleManagement({ defaultTab }) {
                   User will automatically inherit the module permissions attached to this role.
                 </p>
               </div>
+
+              {/* Field Engineer Operational Assignment Details */}
+              {newUser.role === 'Field Engineer' && (
+                <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-3 animate-in fade-in">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                    <span>Operational Workforce Auto-Provisioning</span>
+                  </div>
+                  <p className="text-[11px] text-blue-700 leading-relaxed">
+                    This engineer will be automatically registered in the active workforce and appear in 
+                    <strong> Ticket Dispatch &amp; Manual Technician Selection</strong>.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                        Deployment Market
+                      </label>
+                      <select
+                        value={newUser.market_id || 'mumbai'}
+                        onChange={(e) => {
+                          const m = e.target.value;
+                          setNewUser({
+                            ...newUser,
+                            market_id: m,
+                            region: m === 'kolkata' ? 'Salt Lake Sector V' : 'Bandra West'
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold text-slate-800"
+                      >
+                        <option value="mumbai">Mumbai MMR</option>
+                        <option value="kolkata">Kolkata Metro</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                        Base Locality / Region
+                      </label>
+                      <select
+                        value={newUser.region || (newUser.market_id === 'kolkata' ? 'Salt Lake Sector V' : 'Bandra West')}
+                        onChange={(e) => setNewUser({ ...newUser, region: e.target.value })}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 font-medium"
+                      >
+                        {(MARKET_LOCALITIES[newUser.market_id || 'mumbai'] || MARKET_LOCALITIES.mumbai).map((loc) => (
+                          <option key={loc} value={loc}>
+                            {loc}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                      Contact Phone
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.phone || ''}
+                      onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                      placeholder="+91 98200 12345"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 font-mono"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Status */}
               <div className="space-y-1.5">
