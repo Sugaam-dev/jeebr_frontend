@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useMarket } from '../../context/MarketContext';
+import { useAuth } from '../../context/AuthContext';
+import { CustomerTrackingCard } from '../../components/customer/CustomerTrackingCard';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 import { 
   Search, 
@@ -13,7 +15,8 @@ import {
   Info, 
   Zap,
   Clock,
-  Database
+  Database,
+  Navigation
 } from 'lucide-react';
 
 export const CustomerSearch = () => {
@@ -26,6 +29,8 @@ export const CustomerSearch = () => {
   const paramType = searchParams.get('customer_type') || '';
   const paramStatus = searchParams.get('status') || '';
 
+  const { user } = useAuth();
+  const [activeTrackingTicketId, setActiveTrackingTicketId] = useState(user?.role === 'Customer' ? 1 : null);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -165,6 +170,32 @@ export const CustomerSearch = () => {
           </button>
         </div>
       </div>
+
+      {/* Live Customer Tracking Card */}
+      {(user?.role === 'Customer' || activeTrackingTicketId) && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                {user?.role === 'Customer' ? 'Your Active Service Dispatch' : 'Simulated Customer Live Tracking Experience'}
+              </span>
+              <span className="text-xs text-gray-500">
+                Ticket #TCK-MUM-2026-0001 &bull; End-to-End Real-Time Geolocation
+              </span>
+            </div>
+            {user?.role !== 'Customer' && (
+              <button
+                type="button"
+                onClick={() => setActiveTrackingTicketId(null)}
+                className="text-xs text-gray-500 hover:text-gray-800 underline cursor-pointer"
+              >
+                Hide Tracker
+              </button>
+            )}
+          </div>
+          <CustomerTrackingCard ticketId={activeTrackingTicketId || 1} />
+        </div>
+      )}
 
       {/* Search & Secondary Filters */}
       <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row items-center gap-3">
@@ -356,8 +387,22 @@ export const CustomerSearch = () => {
                       </span>
                     </td>
 
-                    {/* Customer 360 */}
-                    <td className="px-4 py-3.5 text-right">
+                    {/* Customer 360 & Dispatch Actions */}
+                    <td className="px-4 py-3.5 text-right space-x-1.5">
+                      {c.id === 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveTrackingTicketId(1);
+                            window.scrollTo({ top: 120, behavior: 'smooth' });
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition inline-flex items-center gap-1 cursor-pointer border border-blue-200"
+                          title="Track Live Field Dispatch"
+                        >
+                          <Navigation className="w-3 h-3 text-blue-600" />
+                          <span>Track Dispatch</span>
+                        </button>
+                      )}
                       {onOpen360 && (
                         <button
                           onClick={(e) => {

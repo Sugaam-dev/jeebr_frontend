@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, getHomeRouteForRole } from '../../context/AuthContext';
 import { 
   ArrowRight, 
   Lock, 
@@ -10,11 +10,12 @@ import {
   AlertCircle, 
   Sparkles, 
   Check, 
-  ShieldCheck,
-  CheckCircle2,
-  Cpu,
-  Layers,
-  KeyRound
+  ShieldCheck, 
+  CheckCircle2, 
+  Cpu, 
+  Layers, 
+  KeyRound,
+  Shield
 } from 'lucide-react';
 import logoImg from '../../assets/logo_pmrg.png';
 
@@ -22,7 +23,7 @@ export const LoginPage = () => {
   const { login, loading, sessionExpired, clearSessionExpired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/cockpit';
+  const from = location.state?.from?.pathname;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,8 +41,10 @@ export const LoginPage = () => {
     setError('');
     clearSessionExpired();
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      const data = await login(email, password);
+      const homeRoute = getHomeRouteForRole(data.role);
+      const target = (!from || from === '/cockpit' || from === '/login' || from === '/') ? homeRoute : from;
+      navigate(target, { replace: true });
     } catch (err) {
       setError(err.message || 'Invalid email or password. Please check your credentials.');
     }
@@ -104,14 +107,22 @@ export const LoginPage = () => {
             </div>
           </div>
 
-          {/* Enterprise Security Architecture */}
-          <div className="relative z-10 space-y-2 pt-4 border-t border-blue-900/60">
+          {/* Enterprise Security & Access Architecture */}
+          <div className="relative z-10 space-y-3 pt-3 border-t border-blue-900/60">
             <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-cyan-300" />
-              <span>Role-Based Access Control &amp; Security:</span>
+              <Shield className="w-3.5 h-3.5 text-cyan-300" />
+              <span>Governed Access Architecture</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-blue-950/40 border border-cyan-400/20 text-[11px] text-blue-200/80 leading-relaxed">
-              Strict cryptographic verification, JWT session expiration, role-segregated authorization boundaries, and immutable governance audit trails.
+            <div className="grid grid-cols-1 gap-2">
+              <div className="p-2.5 rounded-xl bg-blue-950/40 border border-cyan-400/20 text-[11px] text-blue-200/90 leading-relaxed space-y-1.5">
+                <div className="font-semibold text-white flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span>Strict Role-Based Portal Isolation</span>
+                </div>
+                <p className="text-[10.5px] text-blue-200/70">
+                  Authentication automatically routes authorized personnel to their designated portal: Customer Self-Service, Field Mobile Workbench, or the Central Operations Cockpit.
+                </p>
+              </div>
             </div>
           </div>
 

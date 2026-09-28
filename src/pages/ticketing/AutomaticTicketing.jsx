@@ -139,6 +139,45 @@ export const AutomaticTicketing = () => {
 
   useEffect(() => {
     loadAllData();
+
+    // SSE Market Stream for real-time ticket, approval, assignment, and workload synchronization
+    let eventSource = null;
+    try {
+      const streamUrl = api.getTicketingStreamUrl();
+      eventSource = new EventSource(streamUrl);
+
+      eventSource.addEventListener('ticket_created', (e) => {
+        loadAllData(true);
+      });
+
+      eventSource.addEventListener('ticket_approved', (e) => {
+        loadAllData(true);
+      });
+
+      eventSource.addEventListener('ticket_assigned', (e) => {
+        loadAllData(true);
+      });
+
+      eventSource.addEventListener('ticket_resolved', (e) => {
+        loadAllData(true);
+      });
+
+      eventSource.addEventListener('workload_updated', (e) => {
+        loadAllData(true);
+      });
+
+      eventSource.onerror = () => {
+        // EventSource will auto-reconnect
+      };
+    } catch {
+      // Best effort SSE
+    }
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }, []);
 
   const handleToggleAutoDispatch = async () => {
@@ -270,12 +309,16 @@ export const AutomaticTicketing = () => {
 
   const handleConfirmApproval = async () => {
     if (!approvingTicket) return;
+    if (assignMode === 'MANUAL' && !selectedTechnicianId) {
+      showNotification('Please select a technician or switch to Auto-Dispatch mode.', 'error');
+      return;
+    }
     setActionLoading(true);
     stopVoiceScript();
     try {
-      const techId = assignMode === 'MANUAL' ? selectedTechnicianId : null;
+      const techId = (assignMode === 'MANUAL' && selectedTechnicianId) ? Number(selectedTechnicianId) : null;
       const res = await api.approveTicket(approvingTicket.id, approvalNotes, techId);
-      showNotification(`Ticket #${res.ticket_code} approved! ${techId ? 'Manually assigned' : 'Auto-dispatched'} to ${res.assigned_resource_name} (${res.assigned_resource_region}).`);
+      showNotification(`Ticket #${res.ticket_code} approved! ${techId ? 'Manually assigned' : 'Auto-dispatched'} to ${res.assigned_resource_name || 'technician'}${res.assigned_resource_region ? ` (${res.assigned_resource_region})` : ''}.`);
       setApprovingTicket(null);
       loadAllData(true);
     } catch (err) {
@@ -1739,18 +1782,38 @@ export const AutomaticTicketing = () => {
                       className="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-indigo-500 font-medium"
                     >
                       <option value="">-- Select Available Technician --</option>
-                      {resources.map((res) => (
-                        <option key={res.id} value={res.id}>
-                          {res.name} — {res.region} ({res.active_tickets_count}/{res.max_capacity} tasks) [{res.status}]
-                        </option>
-                      ))}
+                      {resources.map((res) => {
+                        const activeCount = res.active_jobs ?? res.active_tickets_count ?? 0;
+                        const maxCap = res.max_active_jobs ?? res.max_capacity ?? 3;
+                        const isAtCap = activeCount >= maxCap;
+                        return (
+                          <option 
+                            key={res.id} 
+                            value={res.id}
+                            disabled={isAtCap}
+                            className={isAtCap ? 'text-gray-400 bg-rose-50' : ''}
+                          >
+                            {isAtCap ? '🚫 [AT CAPACITY] ' : '✅ '}{res.name} — {res.region} ({activeCount}/{maxCap} active) [{res.capacity_status || res.status}]
+                          </option>
+                        );
+                      })}
                     </select>
-                    {selectedTechnicianId && (
-                      <div className="text-[10px] text-indigo-700 font-medium pt-1 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Will be manually assigned to {resources.find(r => String(r.id) === String(selectedTechnicianId))?.name} upon sign-off.</span>
-                      </div>
-                    )}
+                    {selectedTechnicianId && (() => {
+                      const selectedRes = resources.find(r => String(r.id) === String(selectedTechnicianId));
+                      const active = selectedRes?.active_jobs ?? selectedRes?.active_tickets_count ?? 0;
+                      const max = selectedRes?.max_active_jobs ?? selectedRes?.max_capacity ?? 3;
+                      const atCap = active >= max;
+                      return (
+                        <div className={`text-[10px] font-medium pt-1 flex items-center gap-1 ${atCap ? 'text-rose-600' : 'text-indigo-700'}`}>
+                          {atCap ? <AlertCircle className="w-3 h-3 text-rose-500" /> : <CheckCircle2 className="w-3 h-3" />}
+                          <span>
+                            {atCap
+                              ? `Warning: ${selectedRes?.name} is at maximum capacity (${active}/${max} jobs). Assignment will be rejected.`
+                              : `Will assign to ${selectedRes?.name} (${active}/${max} current workload).`}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

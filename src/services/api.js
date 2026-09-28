@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || (
+const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || (
   typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:8000/api'
     : 'https://mso.isp.backend.pmrgsolution.com/api'
@@ -10,8 +10,8 @@ const inflightRequests = new Map();
 const CACHE_TTL_MS = 45000; // 45 seconds cache TTL
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('pmrg_token');
-  const market = localStorage.getItem('pmrg_market') || 'mumbai';
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('pmrg_token') : null;
+  const market = typeof localStorage !== 'undefined' ? (localStorage.getItem('pmrg_market') || 'mumbai') : 'mumbai';
   return {
     'Content-Type': 'application/json',
     'X-Market-Id': market,
@@ -21,20 +21,40 @@ function getAuthHeaders() {
 
 async function handleResponse(res) {
   if (res.status === 401) {
-    localStorage.removeItem('pmrg_token');
-    localStorage.removeItem('pmrg_user');
-    window.dispatchEvent(new Event('auth-logout'));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('pmrg_token');
+      localStorage.removeItem('pmrg_user');
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('auth-logout'));
+    }
   }
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || `Request failed with status ${res.status}`);
+    const USER_MESSAGES = {
+      401: 'Your session has expired. Please sign in again.',
+      403: "You don't have permission to access this resource.",
+      404: 'The requested record was not found.',
+      409: typeof errorData.detail === 'object' && errorData.detail?.message 
+        ? errorData.detail.message 
+        : (typeof errorData.detail === 'string' ? errorData.detail : 'Action conflict: Resource is at capacity or conflicting state.'),
+      400: typeof errorData.detail === 'string' ? errorData.detail : 'The request could not be completed.',
+      500: 'A server error occurred. Please try again shortly.',
+    };
+    const friendlyMessage = USER_MESSAGES[res.status] || (typeof errorData.detail === 'string' ? errorData.detail : `Request failed (${res.status})`);
+    const err = new Error(friendlyMessage);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
   }
   return res.json();
 }
 
 async function cachedFetch(url, options = {}, forceRefresh = false) {
-  const market = localStorage.getItem('pmrg_market') || 'mumbai';
-  const cacheKey = `${url}::market=${market}`;
+  const market = typeof localStorage !== 'undefined' ? (localStorage.getItem('pmrg_market') || 'mumbai') : 'mumbai';
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('pmrg_token') : null;
+  const authKey = token ? token.slice(-12) : 'anon';
+  const cacheKey = `${url}::market=${market}::auth=${authKey}`;
   const now = Date.now();
   
   if (!forceRefresh && requestCache.has(cacheKey)) {
@@ -121,8 +141,42 @@ export const api = {
     }
   },
 
+  getMe: async () => {
+    return secureFetch(`${API_BASE}/auth/me`, { headers: getAuthHeaders() });
+  },
+
   getUsers: async () => {
     return cachedFetch(`${API_BASE}/auth/users`, { headers: getAuthHeaders() }, true);
+  },
+
+  adminCreateUser: async (userData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/auth/users`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    return handleResponse(res);
+  },
+
+  adminUpdateUser: async (userId, userData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/auth/users/${userId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    return handleResponse(res);
+  },
+
+  toggleUserStatus: async (userId, isActive) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/auth/users/${userId}/status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ is_active: isActive })
+    });
+    return handleResponse(res);
   },
 
   demoLogin: async (role) => {
@@ -397,6 +451,227 @@ export const api = {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ notes })
+    });
+    return handleResponse(res);
+  },
+
+  // --- Field Operations & Live Engineer Tracking ---
+  // NOTE: All field tracking endpoints use secureFetch (uncached).
+  // The 45-second cachedFetch TTL would serve stale GPS coordinates and kill real-time tracking.
+
+  getFieldOpsSummary: async () => {
+    return secureFetch(`${API_BASE}/field/summary`, { headers: getAuthHeaders() });
+  },
+
+  getFieldEngineers: async (status = null) => {
+    const url = status ? `${API_BASE}/field/engineers?status=${encodeURIComponent(status)}` : `${API_BASE}/field/engineers`;
+    return secureFetch(url, { headers: getAuthHeaders() });
+  },
+
+  getFieldJobs: async (status = null) => {
+    const url = status ? `${API_BASE}/field/jobs?status=${encodeURIComponent(status)}` : `${API_BASE}/field/jobs`;
+    return secureFetch(url, { headers: getAuthHeaders() });
+  },
+
+  getMyFieldJobs: async () => {
+    return secureFetch(`${API_BASE}/field/my-jobs`, { headers: getAuthHeaders() });
+  },
+
+  getFieldJobDetail: async (jobId) => {
+    return secureFetch(`${API_BASE}/field/jobs/${jobId}`, { headers: getAuthHeaders() });
+  },
+
+  transitionFieldJob: async (jobId, targetStatus, notes = '', latitude = null, longitude = null) => {
+    clearApiCache();
+    const payload = { target_status: targetStatus, notes };
+    if (latitude !== null && longitude !== null) {
+      payload.latitude = latitude;
+      payload.longitude = longitude;
+    }
+    const res = await fetch(`${API_BASE}/field/jobs/${jobId}/transition`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return handleResponse(res);
+  },
+
+  sendLocationPing: async (jobId, {
+    latitude,
+    longitude,
+    accuracy = 10.0,
+    speed = 0.0,
+    heading = 0.0,
+    battery_level = 95,
+    is_mock = false,
+    recorded_at = null,
+    accuracy_meters = null,
+    speed_mps = null,
+    heading_degrees = null
+  }) => {
+    const finalAccuracy = accuracy_meters !== null ? accuracy_meters : accuracy;
+    const finalSpeed = speed_mps !== null ? speed_mps : speed;
+    const finalHeading = heading_degrees !== null ? heading_degrees : heading;
+
+    const payload = {
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      accuracy: Math.max(0, Number(finalAccuracy)),
+      speed: Math.max(0, Number(finalSpeed)),
+      heading: Number(finalHeading),
+      battery_level: battery_level !== null ? Number(battery_level) : null,
+      is_mock: Boolean(is_mock),
+      recorded_at: recorded_at || new Date().toISOString()
+    };
+
+    const res = await fetch(`${API_BASE}/field/jobs/${jobId}/ping`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return handleResponse(res);
+  },
+
+  requestFieldOtp: async (jobId, notes = '') => {
+    if (!jobId || String(jobId) === 'undefined' || String(jobId) === 'null') {
+      throw new Error('Valid Job Assignment ID is required to request OTP.');
+    }
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/field/jobs/${jobId}/request-otp`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ notes })
+    });
+    return handleResponse(res);
+  },
+
+  verifyFieldOtp: async (jobId, otpCode) => {
+    if (!jobId || String(jobId) === 'undefined' || String(jobId) === 'null') {
+      throw new Error('Valid Job Assignment ID is required to verify OTP.');
+    }
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/field/jobs/${jobId}/verify-otp`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ otp: otpCode, otp_code: otpCode })
+    });
+    return handleResponse(res);
+  },
+
+  completeFieldJob: async (jobId, resolutionNotes = '', customerSignatureConfirmed = true) => {
+    if (!jobId || String(jobId) === 'undefined' || String(jobId) === 'null') {
+      throw new Error('Valid Job Assignment ID is required to complete job.');
+    }
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/field/jobs/${jobId}/complete`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        resolution_notes: resolutionNotes,
+        customer_signature_confirmed: customerSignatureConfirmed
+      })
+    });
+    return handleResponse(res);
+  },
+
+  getCustomerTracking: async (ticketId) => {
+    return secureFetch(`${API_BASE}/field/tracking/${ticketId}`, { headers: getAuthHeaders() });
+  },
+
+  getFieldJobRoute: async (jobId) => {
+    return secureFetch(`${API_BASE}/field/jobs/${jobId}/route`, { headers: getAuthHeaders() });
+  },
+
+  getFieldJobHistory: async (jobId) => {
+    return cachedFetch(`${API_BASE}/field/jobs/${jobId}/tracking-history`, { headers: getAuthHeaders() }, true);
+  },
+
+  getFieldOpsStreamUrl: () => {
+    const token = localStorage.getItem('pmrg_token');
+    const market = localStorage.getItem('pmrg_market') || 'mumbai';
+    return `${API_BASE}/field/stream?token=${encodeURIComponent(token || '')}&market_id=${encodeURIComponent(market)}&market=${encodeURIComponent(market)}`;
+  },
+
+  getCustomerTrackingStreamUrl: (sessionId) => {
+    const token = localStorage.getItem('pmrg_token');
+    return `${API_BASE}/field/tracking/${sessionId}/stream?token=${encodeURIComponent(token || '')}`;
+  },
+
+  getCustomerTicketStreamUrl: (ticketId) => {
+    const token = localStorage.getItem('pmrg_token');
+    const market = localStorage.getItem('pmrg_market') || 'mumbai';
+    return `${API_BASE}/field/tickets/${ticketId}/stream?token=${encodeURIComponent(token || '')}&market_id=${encodeURIComponent(market)}`;
+  },
+
+  getTicketingStreamUrl: () => {
+    const token = localStorage.getItem('pmrg_token');
+    const market = localStorage.getItem('pmrg_market') || 'mumbai';
+    return `${API_BASE}/field/stream?token=${encodeURIComponent(token || '')}&market_id=${encodeURIComponent(market)}&market=${encodeURIComponent(market)}`;
+  },
+
+  // Hierarchical RBAC API
+  getPermissions: async () => {
+    return cachedFetch(`${API_BASE}/rbac/permissions`, { headers: getAuthHeaders() }, true);
+  },
+
+  getRoles: async () => {
+    return cachedFetch(`${API_BASE}/rbac/roles`, { headers: getAuthHeaders() }, true);
+  },
+
+  getAssignableRoles: async () => {
+    return cachedFetch(`${API_BASE}/rbac/assignable-roles`, { headers: getAuthHeaders() }, true);
+  },
+
+  createCustomRole: async (roleData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/rbac/roles`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(roleData)
+    });
+    return handleResponse(res);
+  },
+
+  updateCustomRole: async (roleId, roleData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/rbac/roles/${roleId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(roleData)
+    });
+    return handleResponse(res);
+  },
+
+  deleteCustomRole: async (roleId) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/rbac/roles/${roleId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  assignUserRole: async (userId, roleName) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/rbac/users/${userId}/role`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ role_name: roleName })
+    });
+    return handleResponse(res);
+  },
+
+  // Engineer Workload & Capacity API
+  getEngineerWorkload: async (engineerId) => {
+    return cachedFetch(`${API_BASE}/field/engineers/${engineerId}/workload`, { headers: getAuthHeaders() }, true);
+  },
+
+  setEngineerCapacity: async (engineerId, maxCapacity) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/field/engineers/${engineerId}/capacity`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ max_capacity: maxCapacity })
     });
     return handleResponse(res);
   }

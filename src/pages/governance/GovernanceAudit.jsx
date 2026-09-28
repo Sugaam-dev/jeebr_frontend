@@ -200,7 +200,10 @@ export const GovernanceAudit = () => {
           {recommendations.map((rec) => {
             const isPending = rec.status === 'PENDING';
             const allowedRoles = MODULE_ROLE_MAP[rec.source_module] || ['Admin'];
-            const canApprove = user?.role === 'Admin' || allowedRoles.includes(user?.role);
+            const normRole = (user?.role || '').toUpperCase().replace(/[\s-]/g, '_');
+            const isSuper = normRole === 'SUPER_ADMIN';
+            const isAdmin = normRole === 'ADMIN' || isSuper;
+            const canApprove = isAdmin || allowedRoles.some(r => r.toUpperCase().replace(/[\s-]/g, '_') === normRole);
 
             const badgeClass =
               rec.status === 'APPROVED' || rec.status === 'EXECUTED'

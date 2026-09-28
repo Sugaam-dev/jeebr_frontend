@@ -39,7 +39,7 @@ export const AppLayout = () => {
           onToggleSidebar={() => handleSidebarToggle(!sidebarCollapsed)}
           sidebarCollapsed={sidebarCollapsed}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          onOpen360Global={() => navigate('/customer360')}
+          onOpen360Global={() => navigate('/dashboard/customer360')}
         />
         
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-[#F5F8FF]">

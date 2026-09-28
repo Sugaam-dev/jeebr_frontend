@@ -1,0 +1,12 @@
+/**
+ * Standard GPS Tracking States for Sentinel OS Field Operations
+ */
+export const GPS_TRACKING_STATES = {
+  NOT_TRACKING: 'NOT_TRACKING',
+  STARTING: 'STARTING',
+  LIVE: 'LIVE',
+  STALE: 'STALE',
+  LOCATION_DENIED: 'LOCATION_DENIED',
+  GPS_UNAVAILABLE: 'GPS_UNAVAILABLE',
+  OFFLINE: 'OFFLINE'
+};

@@ -11,47 +11,72 @@ import {
   Search,
   Sparkles,
   Ticket,
+  MapPin,
+  Wrench,
+  Shield,
   X
 } from 'lucide-react';
 import logoImg from '../../assets/logo_pmrg.png';
 
+import { useAuth } from '../../context/AuthContext';
+
 export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Determine current active route
-  const currentPath = location.pathname.replace(/^\/+/, '').split('/')[0] || 'cockpit';
+  // Determine current active route under /dashboard prefix
+  const segments = location.pathname.split('/').filter(Boolean);
+  const currentPath = segments[0] === 'dashboard' ? (segments[1] || 'cockpit') : (segments[0] || 'cockpit');
 
   const sections = [
     {
       title: 'AI GOVERNANCE',
       items: [
-        { id: 'cockpit', label: 'Overview', icon: LayoutDashboard, subtitle: 'Operations cockpit' },
-        { id: 'pilot-bundle', label: 'Risk Topology & Trace', icon: Sparkles, subtitle: 'Connected E2E trace' },
+        { id: 'cockpit', label: 'Overview', icon: LayoutDashboard, subtitle: 'Operations cockpit', allowedRoles: ['Admin', 'NOC', 'Care', 'Revenue', 'Executive', 'Viewer'] },
+        { id: 'pilot-bundle', label: 'Risk Topology & Trace', icon: Sparkles, subtitle: 'Connected E2E trace', allowedRoles: ['Admin', 'NOC', 'Executive'] },
       ],
     },
     {
       title: 'SCORED INTELLIGENCE',
       items: [
-        { id: 'assurance', label: 'Predictive Assurance', icon: Radio, subtitle: 'Node telemetry & optical' },
-        { id: 'churn', label: 'Churn Prediction', icon: UserMinus, subtitle: 'Subscriber risk models' },
-        { id: 'revenue', label: 'Revenue Assurance', icon: IndianRupee, subtitle: 'Leakage & tariff anomaly' },
-        { id: 'orchestration', label: 'OSS/BSS Orchestration', icon: GitBranch, subtitle: 'Auto-remediation queue' },
+        { id: 'assurance', label: 'Predictive Assurance', icon: Radio, subtitle: 'Node telemetry & optical', allowedRoles: ['Admin', 'NOC', 'Executive'] },
+        { id: 'churn', label: 'Churn Prediction', icon: UserMinus, subtitle: 'Subscriber risk models', allowedRoles: ['Admin', 'Care', 'Executive'] },
+        { id: 'revenue', label: 'Revenue Assurance', icon: IndianRupee, subtitle: 'Leakage & tariff anomaly', allowedRoles: ['Admin', 'Revenue', 'Executive'] },
+        { id: 'orchestration', label: 'OSS/BSS Orchestration', icon: GitBranch, subtitle: 'Auto-remediation queue', allowedRoles: ['Admin', 'NOC', 'Care', 'Executive'] },
       ],
     },
     {
       title: 'GOVERNED WORKFLOWS',
       items: [
-        { id: 'ticketing', label: 'Auto-Ticketing', icon: Ticket, subtitle: 'Regional auto-dispatch' },
-        { id: 'journeys', label: 'Customer Journeys', icon: Compass, subtitle: 'Lifecycle Next-Best-Action' },
-        { id: 'governance', label: 'Governance & Audits', icon: ShieldAlert, subtitle: 'Human sign-off queue' },
-        { id: 'customer360', label: 'Customer 360', icon: Search, subtitle: 'Subscriber intelligence' },
+        { id: 'ticketing', label: 'Auto-Ticketing', icon: Ticket, subtitle: 'Regional auto-dispatch', allowedRoles: ['Admin', 'NOC', 'Care'] },
+        { id: 'field-operations', label: 'Field Operations', icon: MapPin, subtitle: 'Live tracking & monitoring', allowedRoles: ['Admin', 'NOC', 'Care', 'Executive'] },
+        { id: 'journeys', label: 'Customer Journeys', icon: Compass, subtitle: 'Lifecycle Next-Best-Action', allowedRoles: ['Admin', 'Care', 'Executive'] },
+        { id: 'governance', label: 'Governance & Audits', icon: ShieldAlert, subtitle: 'Human sign-off queue', allowedRoles: ['Admin', 'NOC', 'Executive'] },
+        { id: 'customer360', label: 'Customer 360', icon: Search, subtitle: 'Subscriber intelligence', allowedRoles: ['Admin', 'NOC', 'Care'] },
+      ],
+    },
+    {
+      title: 'SYSTEM ADMINISTRATION',
+      items: [
+        { id: 'roles', label: 'Roles & Permissions', icon: Shield, subtitle: 'Hierarchical RBAC matrix', allowedRoles: ['Admin'] },
       ],
     },
   ];
 
+  // Filter sections and items according to current authenticated user's role
+  const visibleSections = sections.map((sec) => ({
+    ...sec,
+    items: sec.items.filter((item) =>
+      !item.allowedRoles ||
+      user?.role === 'SUPER_ADMIN' ||
+      user?.role === 'Admin' ||
+      item.allowedRoles.includes(user?.role)
+    )
+  })).filter((sec) => sec.items.length > 0);
+
   const handleNavigate = (id) => {
-    navigate(`/${id}`);
+    navigate(`/dashboard/${id}`);
     if (onCloseMobile) {
       onCloseMobile();
     }
@@ -127,7 +152,7 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
 
         {/* Navigation Sections */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-5">
-          {sections.map((sec) => (
+          {visibleSections.map((sec) => (
             <div key={sec.title} className="space-y-1">
               {/* Section Header */}
               {!collapsed || isMobileOpen ? (

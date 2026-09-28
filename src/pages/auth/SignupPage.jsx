@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, getHomeRouteForRole } from '../../context/AuthContext';
 import { 
   ArrowRight, 
   Lock, 
@@ -27,7 +27,7 @@ export const SignupPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('Admin');
+  const [role, setRole] = useState('Customer');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
@@ -72,8 +72,9 @@ export const SignupPage = () => {
     }
 
     try {
-      await signup(fullName.trim(), email.trim(), password, role);
-      navigate('/cockpit', { replace: true });
+      const data = await signup(fullName.trim(), email.trim(), password, role);
+      const homeRoute = getHomeRouteForRole(data.role || role);
+      navigate(homeRoute, { replace: true });
     } catch (err) {
       setError(err.message || 'Unable to create account. Please try again.');
     }
@@ -250,14 +251,13 @@ export const SignupPage = () => {
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-[#2463EB] focus:ring-2 focus:ring-[#2463EB]/20 transition-all font-medium shadow-xs"
                   >
-                    <option value="Admin">System Administrator (Full Authority)</option>
-                    <option value="Executive">Executive (C-Suite &amp; Portfolio)</option>
-                    <option value="NOC">NOC Lead (Predictive Assurance &amp; Splicing)</option>
-                    <option value="Care">Care Lead (Churn Risk &amp; Retention Offers)</option>
-                    <option value="Revenue">Revenue Lead (Billing Ledger &amp; Leakage)</option>
+                    <option value="Customer">Customer (Subscriber Portal &amp; Self-Service)</option>
                     <option value="Viewer">Viewer (Read-Only Telemetry)</option>
                   </select>
                 </div>
+                <p className="text-[10px] text-gray-500 mt-1 pl-1">
+                  Note: Staff &amp; Operational roles (Admin, NOC, Care, Field Engineer) must be provisioned by a Super Admin or System Administrator.
+                </p>
               </div>
 
               {/* Row 2: Password & Confirm Password */}

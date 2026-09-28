@@ -93,7 +93,7 @@ export const Navbar = ({
         if (onOpen360Global) {
           onOpen360Global();
         } else {
-          navigate('/customer360');
+          navigate('/dashboard/customer360');
         }
       }
     };
@@ -134,7 +134,7 @@ export const Navbar = ({
     setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, unread: false } : n));
     setShowNotifications(false);
     if (item.targetTab) {
-      navigate(`/${item.targetTab}`);
+      navigate(`/dashboard/${item.targetTab}`);
     }
   };
 
@@ -148,7 +148,7 @@ export const Navbar = ({
     if (onOpen360Global) {
       onOpen360Global();
     } else {
-      navigate('/customer360');
+      navigate('/dashboard/customer360');
     }
   };
 
