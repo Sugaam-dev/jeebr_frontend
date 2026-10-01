@@ -674,6 +674,114 @@ export const api = {
       body: JSON.stringify({ max_capacity: maxCapacity })
     });
     return handleResponse(res);
+  },
+
+  // ── Phase 7B: Network Topology, OLT / ONT / ONU & Optical Health APIs ──────
+  getNetworkOverview: async () => {
+    return cachedFetch(`${API_BASE}/network/overview`, { headers: getAuthHeaders() }, true);
+  },
+
+  getNetworkDevices: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const url = query ? `${API_BASE}/network/devices?${query}` : `${API_BASE}/network/devices`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getNetworkDevice: async (idOrCode) => {
+    return cachedFetch(`${API_BASE}/network/devices/${idOrCode}`, { headers: getAuthHeaders() }, true);
+  },
+
+  getNetworkOlts: async () => {
+    return cachedFetch(`${API_BASE}/network/olts`, { headers: getAuthHeaders() }, true);
+  },
+
+  getNetworkOltPorts: async (oltId) => {
+    return cachedFetch(`${API_BASE}/network/olts/${oltId}/ports`, { headers: getAuthHeaders() }, true);
+  },
+
+  getNetworkCabinets: async () => {
+    return cachedFetch(`${API_BASE}/network/cabinets`, { headers: getAuthHeaders() }, true);
+  },
+
+  getNetworkSplitters: async () => {
+    return cachedFetch(`${API_BASE}/network/splitters`, { headers: getAuthHeaders() }, true);
+  },
+
+  getCustomerNetworkTopology: async (customerId) => {
+    return cachedFetch(`${API_BASE}/network/topology/customer/${customerId}`, { headers: getAuthHeaders() }, true);
+  },
+
+  getDeviceNetworkTopology: async (deviceIdOrCode) => {
+    return cachedFetch(`${API_BASE}/network/topology/device/${deviceIdOrCode}`, { headers: getAuthHeaders() }, true);
+  },
+
+  getDeviceHealth: async (deviceIdOrCode) => {
+    return cachedFetch(`${API_BASE}/network/devices/${deviceIdOrCode}/health`, { headers: getAuthHeaders() }, true);
+  },
+
+  getDeviceImpact: async (deviceIdOrCode) => {
+    return cachedFetch(`${API_BASE}/network/impact/${deviceIdOrCode}`, { headers: getAuthHeaders() }, true);
+  },
+
+  getNetworkAlarms: async (severity = null) => {
+    const url = severity ? `${API_BASE}/network/alarms?severity=${severity}` : `${API_BASE}/network/alarms`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getNetworkMapLayers: async () => {
+    return cachedFetch(`${API_BASE}/network/map-layers`, { headers: getAuthHeaders() }, true);
+  },
+
+  // ── Phase 8: System & Network Health Monitoring APIs ─────────────────────
+  getMonitoringOverview: async () => {
+    return cachedFetch(`${API_BASE}/network/monitoring/overview`, { headers: getAuthHeaders() }, true);
+  },
+
+  getMonitoringThresholds: async (deviceType = null) => {
+    const url = deviceType 
+      ? `${API_BASE}/network/monitoring/thresholds?device_type=${encodeURIComponent(deviceType)}`
+      : `${API_BASE}/network/monitoring/thresholds`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  updateMonitoringThreshold: async (thresholdId, warningThreshold, criticalThreshold) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/network/monitoring/thresholds/${thresholdId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        warning_threshold: parseFloat(warningThreshold),
+        critical_threshold: parseFloat(criticalThreshold)
+      })
+    });
+    return handleResponse(res);
+  },
+
+  getMonitoringAlarms: async (severity = null, status = 'ACTIVE') => {
+    let url = `${API_BASE}/network/monitoring/alarms?status=${encodeURIComponent(status)}`;
+    if (severity) url += `&severity=${encodeURIComponent(severity)}`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getDeviceMetrics: async (deviceIdOrCode) => {
+    return cachedFetch(`${API_BASE}/network/devices/${deviceIdOrCode}/metrics`, { headers: getAuthHeaders() }, true);
+  },
+
+  getDeviceMetricsHistory: async (deviceIdOrCode, timeRange = '1h', metricType = null) => {
+    let url = `${API_BASE}/network/devices/${deviceIdOrCode}/metrics/history?time_range=${encodeURIComponent(timeRange)}`;
+    if (metricType) url += `&metric_type=${encodeURIComponent(metricType)}`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  simulateDeviceScenario: async (deviceIdOrCode, scenario) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/network/devices/${deviceIdOrCode}/simulate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ scenario })
+    });
+    return handleResponse(res);
   }
 };
+
 

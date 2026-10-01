@@ -62,7 +62,9 @@ export const FallbackSvgMapProvider = ({
   customerLng = null,
   jobStatus = null,
   engineerName = null,
-  height = '460px'
+  height = '460px',
+  layerVisibility = null,
+  networkLayers = null
 }) => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const bounds = MARKET_BOUNDS[currentMarket] || MARKET_BOUNDS.mumbai;
@@ -198,6 +200,62 @@ export const FallbackSvgMapProvider = ({
                 </g>
               );
             })}
+
+            {/* Network Infrastructure (Phase 7B) */}
+            {layerVisibility?.network && networkLayers && (
+              <>
+                {/* Logical Network Links */}
+                {(networkLayers.links || []).map((l, i) => {
+                  if (!l.coordinates || l.coordinates.length < 2) return null;
+                  const pt1 = projectGeoToSvg(l.coordinates[0][1], l.coordinates[0][0], bounds);
+                  const pt2 = projectGeoToSvg(l.coordinates[1][1], l.coordinates[1][0], bounds);
+                  return (
+                    <line
+                      key={`net-link-${i}`}
+                      x1={pt1.x}
+                      y1={pt1.y}
+                      x2={pt2.x}
+                      y2={pt2.y}
+                      stroke="#06B6D4"
+                      strokeWidth="1.8"
+                      strokeDasharray="4 3"
+                      opacity="0.65"
+                    />
+                  );
+                })}
+
+                {/* Fiber Cabinets */}
+                {(networkLayers.fiber_cabinets || []).map((cab) => {
+                  if (!cab.lat || !cab.lng) return null;
+                  const pt = projectGeoToSvg(cab.lat, cab.lng, bounds);
+                  return (
+                    <g key={`cab-${cab.id}`} transform={`translate(${pt.x}, ${pt.y})`}>
+                      <rect x="-8" y="-8" width="16" height="16" rx="3" fill="#D97706" stroke="#fff" strokeWidth="1.5" />
+                      <text x="0" y="16" textAnchor="middle" fill="#FDE68A" fontSize="7.5" fontWeight="bold">
+                        {cab.code}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* OLT Nodes */}
+                {(networkLayers.olts || []).map((olt) => {
+                  if (!olt.lat || !olt.lng) return null;
+                  const pt = projectGeoToSvg(olt.lat, olt.lng, bounds);
+                  return (
+                    <g key={`olt-${olt.id}`} transform={`translate(${pt.x}, ${pt.y})`}>
+                      <circle r="11" fill="#7C3AED" stroke="#fff" strokeWidth="2" />
+                      <text x="0" y="3" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold">
+                        🗼
+                      </text>
+                      <text x="0" y="-14" textAnchor="middle" fill="#DDD6FE" fontSize="8" fontWeight="bold">
+                        {olt.code}
+                      </text>
+                    </g>
+                  );
+                })}
+              </>
+            )}
 
             {/* Field Engineers */}
             {engineers.map((eng) => {

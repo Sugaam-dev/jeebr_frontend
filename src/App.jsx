@@ -39,6 +39,7 @@ import { CustomerSearch } from './pages/customer360/CustomerSearch';
 import { AutomaticTicketing } from './pages/ticketing/AutomaticTicketing';
 import { FieldOperations } from './pages/field-operations/FieldOperations';
 import { RoleManagement } from './pages/admin/RoleManagement';
+import { NocTrackingMap } from './pages/noc/NocTrackingMap';
 
 // Dynamic Role-Aware Portal Guard
 export function PortalRoute({ children, allowedRoles = [] }) {
@@ -151,6 +152,8 @@ export default function App() {
               <Route path="/dashboard/field-operations" element={<FieldOperations />} />
               <Route path="/dashboard/roles" element={<RoleManagement />} />
               <Route path="/dashboard/users" element={<RoleManagement defaultTab="users" />} />
+              {/* Phase 7A: NOC Live Engineer Tracking Map */}
+              <Route path="/dashboard/noc-tracking" element={<NocTrackingMap />} />
 
               {/* Seamless Backwards-Compatibility Aliases */}
               <Route path="/cockpit" element={<Navigate to="/dashboard/cockpit" replace />} />

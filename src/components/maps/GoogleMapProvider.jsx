@@ -20,7 +20,9 @@ export const GoogleMapProvider = ({
   jobStatus = null,
   engineerName = null,
   height = '460px',
-  onRoutingFailed = null
+  onRoutingFailed = null,
+  layerVisibility = null,
+  networkLayers = null
 }) => {
   const mapRef = useRef(null);
   const googleMapInstanceRef = useRef(null);
@@ -297,6 +299,68 @@ export const GoogleMapProvider = ({
         polylinesRef.current.push(routeLine);
       });
 
+      // ── Network Layer (Phase 7B) ──────────────────────────────────────────
+      if (layerVisibility?.network && networkLayers) {
+        (networkLayers.olts || []).forEach(olt => {
+          if (!olt.lat || !olt.lng) return;
+          const pos = { lat: olt.lat, lng: olt.lng };
+          bounds.extend(pos);
+          hasPoints = true;
+
+          const m = new window.google.maps.Marker({
+            position: pos,
+            map,
+            title: `OLT: ${olt.name || olt.code} (${olt.status})`,
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#7C3AED',
+              fillOpacity: 1,
+              strokeColor: '#FFFFFF',
+              strokeWeight: 2
+            }
+          });
+          markersRef.current.push(m);
+        });
+
+        (networkLayers.fiber_cabinets || []).forEach(cab => {
+          if (!cab.lat || !cab.lng) return;
+          const pos = { lat: cab.lat, lng: cab.lng };
+          bounds.extend(pos);
+          hasPoints = true;
+
+          const m = new window.google.maps.Marker({
+            position: pos,
+            map,
+            title: `Cabinet: ${cab.name || cab.code} (${cab.status})`,
+            icon: {
+              path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+              scale: 6,
+              fillColor: '#D97706',
+              fillOpacity: 1,
+              strokeColor: '#FFFFFF',
+              strokeWeight: 1.5
+            }
+          });
+          markersRef.current.push(m);
+        });
+
+        (networkLayers.links || []).forEach(l => {
+          if (!l.coordinates || l.coordinates.length < 2) return;
+          const linkLine = new window.google.maps.Polyline({
+            path: [
+              { lat: l.coordinates[0][1], lng: l.coordinates[0][0] },
+              { lat: l.coordinates[1][1], lng: l.coordinates[1][0] }
+            ],
+            strokeColor: '#06B6D4',
+            strokeOpacity: 0.6,
+            strokeWeight: 2,
+            map
+          });
+          polylinesRef.current.push(linkLine);
+        });
+      }
+
       if (hasPoints) {
         map.fitBounds(bounds);
         const listener = window.google.maps.event.addListener(map, 'idle', () => {
@@ -315,7 +379,9 @@ export const GoogleMapProvider = ({
     customerLat,
     customerLng,
     jobStatus,
-    engineerName
+    engineerName,
+    layerVisibility,
+    networkLayers
   ]);
 
   return (

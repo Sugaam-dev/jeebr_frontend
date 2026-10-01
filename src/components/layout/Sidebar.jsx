@@ -51,6 +51,7 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
       items: [
         { id: 'ticketing', label: 'Auto-Ticketing', icon: Ticket, subtitle: 'Regional auto-dispatch', allowedRoles: ['Admin', 'NOC', 'Care'] },
         { id: 'field-operations', label: 'Field Operations', icon: MapPin, subtitle: 'Live tracking & monitoring', allowedRoles: ['Admin', 'NOC', 'Care', 'Executive'] },
+        { id: 'noc-tracking', label: 'NOC Live Map', icon: Wrench, subtitle: 'Engineer tracking · Phase 7A', allowedRoles: ['Admin', 'NOC'] },
         { id: 'journeys', label: 'Customer Journeys', icon: Compass, subtitle: 'Lifecycle Next-Best-Action', allowedRoles: ['Admin', 'Care', 'Executive'] },
         { id: 'governance', label: 'Governance & Audits', icon: ShieldAlert, subtitle: 'Human sign-off queue', allowedRoles: ['Admin', 'NOC', 'Executive'] },
         { id: 'customer360', label: 'Customer 360', icon: Search, subtitle: 'Subscriber intelligence', allowedRoles: ['Admin', 'NOC', 'Care'] },
