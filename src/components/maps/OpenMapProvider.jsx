@@ -15,6 +15,12 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+
+// Configure bundled MapLibre worker for Vite / Vercel production deployment
+if (typeof maplibregl.setWorkerUrl === 'function') {
+  maplibregl.setWorkerUrl(maplibreWorkerUrl);
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -23,10 +29,17 @@ const MARKET_CENTERS = {
   kolkata: { lat: 22.5726, lng: 88.3639, zoom: 12 },
 };
 
-// Configurable style URL — falls back to OpenFreeMap Liberty style
-const STYLE_URL =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OPEN_MAP_STYLE_URL) ||
-  'https://tiles.openfreemap.org/styles/liberty';
+// Configurable style URL — falls back to OpenFreeMap Liberty style, strips any accidental trailing dots/spaces
+const getSanitizedStyleUrl = () => {
+  const envUrl = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_OPEN_MAP_STYLE_URL : null;
+  if (!envUrl || typeof envUrl !== 'string') {
+    return 'https://tiles.openfreemap.org/styles/liberty';
+  }
+  const cleaned = envUrl.trim().replace(/\.+$/, '');
+  return cleaned || 'https://tiles.openfreemap.org/styles/liberty';
+};
+
+const STYLE_URL = getSanitizedStyleUrl();
 
 // Status → marker colour mapping (mirrors GoogleMapProvider colours)
 const STATUS_COLORS = {
@@ -332,9 +345,19 @@ export const OpenMapProvider = ({
       setMapReady(true);
     });
 
+    let hasFallbackAttempted = false;
     map.on('error', (e) => {
-      console.warn('[OpenMapProvider] MapLibre error:', e.error?.message || e);
-      // Style load failures are handled gracefully — map still works without custom layers
+      const errMsg = e.error?.message || (typeof e.message === 'string' ? e.message : '');
+      console.warn('[OpenMapProvider] MapLibre error:', errMsg || e);
+      if (!hasFallbackAttempted && (errMsg.includes('404') || errMsg.includes('Failed to fetch') || errMsg.includes('AJAXError'))) {
+        hasFallbackAttempted = true;
+        console.warn('[OpenMapProvider] Primary style failed; attempting fallback to demo tiles style...');
+        try {
+          map.setStyle('https://demotiles.maplibre.org/style.json');
+        } catch {
+          // Keep running
+        }
+      }
     });
 
     return () => {
