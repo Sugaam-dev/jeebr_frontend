@@ -14,6 +14,7 @@ import {
   MapPin,
   Wrench,
   Shield,
+  Zap,
   X
 } from 'lucide-react';
 import logoImg from '../../assets/logo_pmrg.png';
@@ -54,7 +55,8 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
         { id: 'noc-tracking', label: 'NOC Live Map', icon: Wrench, subtitle: 'Engineer tracking · Phase 7A', allowedRoles: ['Admin', 'NOC'] },
         { id: 'journeys', label: 'Customer Journeys', icon: Compass, subtitle: 'Lifecycle Next-Best-Action', allowedRoles: ['Admin', 'Care', 'Executive'] },
         { id: 'governance', label: 'Governance & Audits', icon: ShieldAlert, subtitle: 'Human sign-off queue', allowedRoles: ['Admin', 'NOC', 'Executive'] },
-        { id: 'customer360', label: 'Customer 360', icon: Search, subtitle: 'Subscriber intelligence', allowedRoles: ['Admin', 'NOC', 'Care'] },
+        { id: 'customer360', label: 'Customer 360', icon: Search, subtitle: 'Subscriber intelligence & CRM', allowedRoles: ['Admin', 'NOC', 'Care', 'Executive', 'Viewer'] },
+        { id: 'provisioning', label: 'Service Provisioning', icon: Zap, subtitle: 'Automated delivery & OLT', allowedRoles: ['Admin', 'NOC', 'Care', 'Executive', 'Viewer'] },
       ],
     },
     {

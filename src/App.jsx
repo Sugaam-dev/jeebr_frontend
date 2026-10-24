@@ -148,6 +148,7 @@ export default function App() {
               <Route path="/dashboard/governance" element={<GovernanceAudit />} />
               <Route path="/dashboard/customer360" element={<CustomerSearch />} />
               <Route path="/dashboard/customers" element={<CustomerSearch />} />
+              <Route path="/dashboard/provisioning" element={<CustomerSearch defaultTab="provisioning" />} />
               <Route path="/dashboard/ticketing" element={<AutomaticTicketing />} />
               <Route path="/dashboard/field-operations" element={<FieldOperations />} />
               <Route path="/dashboard/roles" element={<RoleManagement />} />
@@ -166,6 +167,7 @@ export default function App() {
               <Route path="/governance" element={<Navigate to="/dashboard/governance" replace />} />
               <Route path="/customer360" element={<Navigate to="/dashboard/customer360" replace />} />
               <Route path="/customers" element={<Navigate to="/dashboard/customer360" replace />} />
+              <Route path="/provisioning" element={<Navigate to="/dashboard/provisioning" replace />} />
               <Route path="/ticketing" element={<Navigate to="/dashboard/ticketing" replace />} />
               <Route path="/field-operations" element={<Navigate to="/dashboard/field-operations" replace />} />
               <Route path="/roles" element={<Navigate to="/dashboard/roles" replace />} />

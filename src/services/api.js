@@ -1,13 +1,51 @@
-const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || (
-  typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:8000/api'
-    : 'https://mso.isp.backend.pmrgsolution.com/api'
-);
+export function getApiBaseUrl() {
+  // 1. Check explicit Vite environment variables (VITE_API_BASE_URL preferred, VITE_API_URL fallback)
+  const envUrl = typeof import.meta !== 'undefined'
+    ? (import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_URL || '')
+    : '';
+
+  let raw = (typeof envUrl === 'string' ? envUrl : '').trim();
+
+  // 2. If environment variable is omitted, intelligently detect runtime environment
+  if (!raw) {
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') {
+        raw = 'http://localhost:8000/api';
+      } else {
+        // Remotely deployed frontend should NEVER call localhost on developer's machine
+        raw = 'https://mso.isp.backend.pmrgsolution.com/api';
+      }
+    } else {
+      raw = 'http://localhost:8000/api';
+    }
+  }
+
+  // 3. Normalize: strip trailing slashes and ensure /api path is present once
+  raw = raw.replace(/\/+$/, '');
+  if (!raw.endsWith('/api')) {
+    raw = `${raw}/api`;
+  }
+  return raw;
+}
+
+export const API_BASE = getApiBaseUrl();
 
 // In-memory cache for ultra-fast tab switches and responsive UI
 const requestCache = new Map();
 const inflightRequests = new Map();
 const CACHE_TTL_MS = 45000; // 45 seconds cache TTL
+
+function formatNetworkError(err, url) {
+  if (err && (err.name === 'TypeError' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError') || err.message?.includes('Network request failed'))) {
+    const netErr = new Error(`Connection refused: SentinelOS backend at ${API_BASE} is unreachable. Please verify the backend service is running on port 8000.`);
+    netErr.isNetworkError = true;
+    netErr.status = 0;
+    netErr.url = url;
+    return netErr;
+  }
+  return err;
+}
 
 function getAuthHeaders() {
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('pmrg_token') : null;
@@ -79,6 +117,8 @@ async function cachedFetch(url, options = {}, forceRefresh = false) {
       const data = await handleResponse(res);
       requestCache.set(cacheKey, { timestamp: Date.now(), data });
       return data;
+    } catch (err) {
+      throw formatNetworkError(err, url);
     } finally {
       inflightRequests.delete(cacheKey);
     }
@@ -98,8 +138,12 @@ async function secureFetch(url, options = {}) {
     credentials: 'include',
     ...options
   };
-  const res = await fetch(url, merged);
-  return handleResponse(res);
+  try {
+    const res = await fetch(url, merged);
+    return await handleResponse(res);
+  } catch (err) {
+    throw formatNetworkError(err, url);
+  }
 }
 
 export const api = {
@@ -323,6 +367,229 @@ export const api = {
 
   getCustomer360: async (customerId, forceRefresh = false) => {
     return cachedFetch(`${API_BASE}/customers/${customerId}/360`, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  // ── CRM Customer Management, Contacts, Addresses, Leads, Maps & Vouchers ──
+  createCustomer: async (customerData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(customerData)
+    });
+    return handleResponse(res);
+  },
+
+  getCustomerDetail: async (idOrCode) => {
+    return cachedFetch(`${API_BASE}/customers/${idOrCode}`, { headers: getAuthHeaders() }, true);
+  },
+
+  updateCustomer: async (idOrCode, updateData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${idOrCode}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updateData)
+    });
+    return handleResponse(res);
+  },
+
+  archiveCustomer: async (idOrCode) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${idOrCode}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  getCustomerContacts: async (customerId) => {
+    return cachedFetch(`${API_BASE}/customers/${customerId}/contacts`, { headers: getAuthHeaders() }, true);
+  },
+
+  createCustomerContact: async (customerId, contactData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/contacts`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(contactData)
+    });
+    return handleResponse(res);
+  },
+
+  updateCustomerContact: async (customerId, contactId, contactData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/contacts/${contactId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(contactData)
+    });
+    return handleResponse(res);
+  },
+
+  archiveCustomerContact: async (customerId, contactId) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/contacts/${contactId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  getCustomerAddresses: async (customerId) => {
+    return cachedFetch(`${API_BASE}/customers/${customerId}/addresses`, { headers: getAuthHeaders() }, true);
+  },
+
+  createCustomerAddress: async (customerId, addressData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/addresses`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(addressData)
+    });
+    return handleResponse(res);
+  },
+
+  archiveCustomerAddress: async (customerId, addressId) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/addresses/${addressId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  updateCustomerAddress: async (customerId, addressId, addressData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/addresses/${addressId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(addressData)
+    });
+    return handleResponse(res);
+  },
+
+  completeAddressSurvey: async (customerId, addressId, surveyData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/addresses/${addressId}/survey-complete`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(surveyData)
+    });
+    return handleResponse(res);
+  },
+
+  getCustomerDocuments: async (customerId) => {
+    return cachedFetch(`${API_BASE}/customers/${customerId}/documents`, { headers: getAuthHeaders() }, true);
+  },
+
+  uploadCustomerDocument: async (customerId, formData) => {
+    clearApiCache();
+    const headers = getAuthHeaders();
+    delete headers['Content-Type']; // Allow browser to set boundary
+    const res = await fetch(`${API_BASE}/customers/${customerId}/documents`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    return handleResponse(res);
+  },
+
+  downloadCustomerDocument: async (customerId, documentId) => {
+    const res = await fetch(`${API_BASE}/customers/${customerId}/documents/${documentId}/download`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `Download failed (HTTP ${res.status})`);
+    }
+    const blob = await res.blob();
+    const contentDisposition = res.headers.get('Content-Disposition') || '';
+    let filename = `document_${documentId}`;
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (filenameMatch && filenameMatch[1]) {
+      filename = filenameMatch[1];
+    }
+    return { blob, filename };
+  },
+
+  verifyCustomerDocument: async (customerId, documentId, verificationData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/documents/${documentId}/verify`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(verificationData)
+    });
+    return handleResponse(res);
+  },
+
+  archiveCustomerDocument: async (customerId, documentId) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/documents/${documentId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  getLeads: async (search = '', status = '', forceRefresh = true) => {
+    let url = `${API_BASE}/customers/leads?`;
+    if (search) url += `search=${encodeURIComponent(search)}&`;
+    if (status) url += `status=${encodeURIComponent(status)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  createLead: async (leadData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/leads`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(leadData)
+    });
+    return handleResponse(res);
+  },
+
+  convertLead: async (leadId, convertData = {}) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/leads/${leadId}/convert`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(convertData)
+    });
+    return handleResponse(res);
+  },
+
+  getCustomerMapLocations: async (forceRefresh = true) => {
+    return cachedFetch(`${API_BASE}/customers/map-locations`, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  getCustomerVouchers: async (customerId = null, forceRefresh = true) => {
+    let url = `${API_BASE}/customers/vouchers`;
+    if (customerId) url += `?customer_id=${customerId}`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, forceRefresh);
+  },
+
+  issueCustomerVoucher: async (customerId, voucherType = 'SPEED_BOOST') => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/vouchers/issue?voucher_type=${encodeURIComponent(voucherType)}`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  getCustomerTickets: async (customerId) => {
+    return cachedFetch(`${API_BASE}/customers/${customerId}/tickets`, { headers: getAuthHeaders() }, true);
+  },
+
+  createCustomerTicket: async (customerId, ticketData) => {
+    clearApiCache();
+    const query = new URLSearchParams(ticketData).toString();
+    const res = await fetch(`${API_BASE}/customers/${customerId}/tickets?${query}`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
   },
 
   // Automated Ticketing & Regional Resource Dispatch
@@ -779,6 +1046,103 @@ export const api = {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ scenario })
+    });
+    return handleResponse(res);
+  },
+
+  // Service Provisioning & Automated Service Delivery APIs
+  getProvisioningPlans: async (accountType = null, billingType = null) => {
+    let url = `${API_BASE}/provisioning/plans`;
+    const params = [];
+    if (accountType) params.push(`account_type=${encodeURIComponent(accountType)}`);
+    if (billingType) params.push(`billing_type=${encodeURIComponent(billingType)}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getCustomerEligibility: async (customerId, planId) => {
+    const url = `${API_BASE}/provisioning/customer/${customerId}/eligibility?plan_id=${encodeURIComponent(planId)}`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getProvisioningOrders: async (status = null, customerId = null, page = 1, pageSize = 50, sortOrder = 'desc') => {
+    let url = `${API_BASE}/provisioning/orders?page=${page}&page_size=${pageSize}&sort_order=${sortOrder}`;
+    if (status) url += `&status=${encodeURIComponent(status)}`;
+    if (customerId) url += `&customer_id=${encodeURIComponent(customerId)}`;
+    
+    // We want the headers too for pagination (X-Total-Count, etc.)
+    const res = await fetch(url, { headers: getAuthHeaders() });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP Error ${res.status}`);
+    }
+    const data = await res.json();
+    return {
+      orders: data,
+      totalCount: parseInt(res.headers.get('X-Total-Count') || (data.length || 0), 10),
+      page: parseInt(res.headers.get('X-Page') || page, 10),
+      pageSize: parseInt(res.headers.get('X-Page-Size') || pageSize, 10),
+      totalPages: parseInt(res.headers.get('X-Total-Pages') || 1, 10),
+    };
+  },
+
+  createProvisioningOrder: async (orderData) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/provisioning/orders`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(orderData)
+    });
+    return handleResponse(res);
+  },
+
+  getProvisioningOrderDetail: async (idOrCode) => {
+    return cachedFetch(`${API_BASE}/provisioning/orders/${idOrCode}`, { headers: getAuthHeaders() }, true);
+  },
+
+  approveProvisioningOrder: async (idOrCode, notes = null) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/provisioning/orders/${idOrCode}/approve`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(notes ? { notes } : {})
+    });
+    return handleResponse(res);
+  },
+
+  triggerProvisioning: async (idOrCode) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/provisioning/orders/${idOrCode}/provision`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  retryProvisioning: async (idOrCode) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/provisioning/orders/${idOrCode}/retry`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  cancelProvisioningOrder: async (idOrCode, reason) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/provisioning/orders/${idOrCode}/cancel`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason })
+    });
+    return handleResponse(res);
+  },
+
+  reconcileProvisioningOrder: async (idOrCode) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/provisioning/orders/${idOrCode}/reconcile`, {
+      method: 'POST',
+      headers: getAuthHeaders()
     });
     return handleResponse(res);
   }

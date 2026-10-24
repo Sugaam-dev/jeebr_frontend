@@ -5,6 +5,12 @@ import { useMarket } from '../../context/MarketContext';
 import { useAuth } from '../../context/AuthContext';
 import { CustomerTrackingCard } from '../../components/customer/CustomerTrackingCard';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
+import { AddCustomerForm } from '../../components/crm/AddCustomerForm';
+import { CrmLeadsView } from '../../components/crm/CrmLeadsView';
+import { CrmMapView } from '../../components/crm/CrmMapView';
+import { CrmVouchersView } from '../../components/crm/CrmVouchersView';
+import { CrmContactsModal } from '../../components/crm/CrmContactsModal';
+import { ProvisioningOrdersView } from '../../components/provisioning/ProvisioningOrdersView';
 import { 
   Search, 
   ExternalLink, 
@@ -13,18 +19,26 @@ import {
   CreditCard, 
   AlertTriangle, 
   Info, 
-  Zap,
-  Clock,
-  Database,
-  Navigation
+  Zap, 
+  Clock, 
+  Database, 
+  Navigation,
+  UserPlus,
+  Compass,
+  MapPin,
+  Gift,
+  FolderOpen
 } from 'lucide-react';
 
-export const CustomerSearch = () => {
+export const CustomerSearch = ({ defaultTab = null }) => {
   const outletCtx = useOutletContext();
   const onOpen360 = outletCtx?.onOpen360;
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentMarket, marketConfig } = useMarket();
+
+  const [activeCrmTab, setActiveCrmTab] = useState(searchParams.get('tab') || defaultTab || 'subscribers');
+  const [selectedCustomerForContacts, setSelectedCustomerForContacts] = useState(null);
 
   const paramType = searchParams.get('customer_type') || '';
   const paramStatus = searchParams.get('status') || '';
@@ -41,9 +55,21 @@ export const CustomerSearch = () => {
 
   // Sync state when URL params change
   useEffect(() => {
+    setActiveCrmTab(searchParams.get('tab') || defaultTab || 'subscribers');
     setCustomerType(searchParams.get('customer_type') || '');
     setStatusFilter(searchParams.get('status') || '');
-  }, [searchParams]);
+  }, [searchParams, defaultTab]);
+
+  const handleCrmTabSwitch = (tab) => {
+    setActiveCrmTab(tab);
+    const newParams = new URLSearchParams(searchParams);
+    if (tab === 'subscribers') {
+      newParams.delete('tab');
+    } else {
+      newParams.set('tab', tab);
+    }
+    setSearchParams(newParams);
+  };
 
   const marketLocalities = new Set(marketConfig?.localities || []);
   const marketCustomers = customers.filter(c => {
@@ -95,8 +121,113 @@ export const CustomerSearch = () => {
         backLabel="Executive Cockpit"
       />
 
-      {/* Header */}
-      <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow">
+      {/* Primary CRM Module Tabs */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 border border-slate-200 rounded-2xl overflow-x-auto text-xs font-semibold">
+        <button
+          onClick={() => handleCrmTabSwitch('subscribers')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeCrmTab === 'subscribers'
+              ? 'bg-white text-blue-700 shadow-xs font-bold'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Subscribers &amp; Search</span>
+        </button>
+
+        {user?.role !== 'Viewer' && user?.role !== 'Customer' && (
+          <button
+            onClick={() => handleCrmTabSwitch('add-customer')}
+            className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+              activeCrmTab === 'add-customer'
+                ? 'bg-white text-blue-700 shadow-xs font-bold'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+            }`}
+          >
+            <UserPlus className="w-4 h-4 text-emerald-600" />
+            <span>Add Customer Master</span>
+          </button>
+        )}
+
+        <button
+          onClick={() => handleCrmTabSwitch('leads')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeCrmTab === 'leads'
+              ? 'bg-white text-blue-700 shadow-xs font-bold'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+          }`}
+        >
+          <Compass className="w-4 h-4 text-indigo-600" />
+          <span>Leads &amp; Pipeline</span>
+        </button>
+
+        <button
+          onClick={() => handleCrmTabSwitch('maps')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeCrmTab === 'maps'
+              ? 'bg-white text-blue-700 shadow-xs font-bold'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+          }`}
+        >
+          <MapPin className="w-4 h-4 text-rose-600" />
+          <span>Customer Maps</span>
+        </button>
+
+        <button
+          onClick={() => handleCrmTabSwitch('vouchers')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeCrmTab === 'vouchers'
+              ? 'bg-white text-blue-700 shadow-xs font-bold'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+          }`}
+        >
+          <Gift className="w-4 h-4 text-amber-600" />
+          <span>Vouchers &amp; Retention</span>
+        </button>
+
+        <button
+          onClick={() => handleCrmTabSwitch('provisioning')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeCrmTab === 'provisioning'
+              ? 'bg-white text-blue-700 shadow-xs font-bold'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+          }`}
+        >
+          <Zap className="w-4 h-4 text-cyan-600" />
+          <span>Service Provisioning</span>
+        </button>
+      </div>
+
+      {activeCrmTab === 'provisioning' && (
+        <ProvisioningOrdersView onOpen360={onOpen360} />
+      )}
+
+      {activeCrmTab === 'add-customer' && (
+        <AddCustomerForm 
+          onSuccess={() => {
+            handleCrmTabSwitch('subscribers');
+            loadData();
+          }} 
+          onCancel={() => handleCrmTabSwitch('subscribers')} 
+        />
+      )}
+
+      {activeCrmTab === 'leads' && (
+        <CrmLeadsView onOpen360={onOpen360} />
+      )}
+
+      {activeCrmTab === 'maps' && (
+        <CrmMapView onOpen360={onOpen360} />
+      )}
+
+      {activeCrmTab === 'vouchers' && (
+        <CrmVouchersView onOpen360={onOpen360} />
+      )}
+
+      {activeCrmTab === 'subscribers' && (
+        <>
+          {/* Header */}
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 sm:p-6 card-shadow">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-[#2463EB] flex items-center gap-1.5">
@@ -387,8 +518,8 @@ export const CustomerSearch = () => {
                       </span>
                     </td>
 
-                    {/* Customer 360 & Dispatch Actions */}
-                    <td className="px-4 py-3.5 text-right space-x-1.5">
+                    {/* Customer 360, Contacts & Dispatch Actions */}
+                    <td className="px-4 py-3.5 text-right space-x-1.5 whitespace-nowrap">
                       {c.id === 1 && (
                         <button
                           onClick={(e) => {
@@ -403,6 +534,17 @@ export const CustomerSearch = () => {
                           <span>Track Dispatch</span>
                         </button>
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCustomerForContacts({ id: c.id, name: c.name });
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-gray-200 text-gray-700 text-xs font-semibold shadow-xs transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        title="Manage Contacts & Physical Addresses"
+                      >
+                        <Users className="w-3 h-3 text-blue-600" />
+                        <span>Contacts</span>
+                      </button>
                       {onOpen360 && (
                         <button
                           onClick={(e) => {
@@ -423,6 +565,17 @@ export const CustomerSearch = () => {
           </table>
         </div>
       </div>
+        </>
+      )}
+
+      {selectedCustomerForContacts && (
+        <CrmContactsModal
+          customerId={selectedCustomerForContacts.id}
+          customerName={selectedCustomerForContacts.name}
+          isOpen={Boolean(selectedCustomerForContacts)}
+          onClose={() => setSelectedCustomerForContacts(null)}
+        />
+      )}
     </div>
   );
 };

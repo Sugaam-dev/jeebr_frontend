@@ -120,6 +120,13 @@ export function RoleManagement({ defaultTab }) {
   const [deletingRole, setDeletingRole] = useState(null);
   const [deleteRoleSubmitting, setDeleteRoleSubmitting] = useState(false);
 
+  const showFeedback = (type, message) => {
+    setFeedback({ type, message });
+    setTimeout(() => {
+      setFeedback({ type: '', message: '' });
+    }, 4500);
+  };
+
   // -------------------------------------------------------------
   // DATA LOADING
   // -------------------------------------------------------------
@@ -161,13 +168,6 @@ export function RoleManagement({ defaultTab }) {
   useEffect(() => {
     loadData();
   }, []);
-
-  const showFeedback = (type, message) => {
-    setFeedback({ type, message });
-    setTimeout(() => {
-      setFeedback({ type: '', message: '' });
-    }, 4500);
-  };
 
   // Group permissions by category
   const permissionsByCategory = useMemo(() => {
