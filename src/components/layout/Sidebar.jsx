@@ -15,6 +15,7 @@ import {
   Wrench,
   Shield,
   Zap,
+  Receipt,
   X
 } from 'lucide-react';
 import logoImg from '../../assets/logo_pmrg.png';
@@ -57,6 +58,12 @@ export const Sidebar = ({ collapsed, onToggle, isMobileOpen, onCloseMobile }) =>
         { id: 'governance', label: 'Governance & Audits', icon: ShieldAlert, subtitle: 'Human sign-off queue', allowedRoles: ['Admin', 'NOC', 'Executive'] },
         { id: 'customer360', label: 'Customer 360', icon: Search, subtitle: 'Subscriber intelligence & CRM', allowedRoles: ['Admin', 'NOC', 'Care', 'Executive', 'Viewer'] },
         { id: 'provisioning', label: 'Service Provisioning', icon: Zap, subtitle: 'Automated delivery & OLT', allowedRoles: ['Admin', 'NOC', 'Care', 'Executive', 'Viewer'] },
+      ],
+    },
+    {
+      title: 'FINANCE & BILLING',
+      items: [
+        { id: 'finance', label: 'Finance Management', icon: Receipt, subtitle: 'Billing, Invoices & Ledger', allowedRoles: ['Admin', 'Revenue', 'Executive', 'Care', 'Viewer'] },
       ],
     },
     {

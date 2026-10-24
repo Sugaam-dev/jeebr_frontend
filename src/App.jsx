@@ -40,6 +40,7 @@ import { AutomaticTicketing } from './pages/ticketing/AutomaticTicketing';
 import { FieldOperations } from './pages/field-operations/FieldOperations';
 import { RoleManagement } from './pages/admin/RoleManagement';
 import { NocTrackingMap } from './pages/noc/NocTrackingMap';
+import { FinanceManagement } from './pages/finance/FinanceManagement';
 
 // Dynamic Role-Aware Portal Guard
 export function PortalRoute({ children, allowedRoles = [] }) {
@@ -155,6 +156,8 @@ export default function App() {
               <Route path="/dashboard/users" element={<RoleManagement defaultTab="users" />} />
               {/* Phase 7A: NOC Live Engineer Tracking Map */}
               <Route path="/dashboard/noc-tracking" element={<NocTrackingMap />} />
+              {/* SentinelOS Enterprise Finance & Billing Management */}
+              <Route path="/dashboard/finance" element={<FinanceManagement />} />
 
               {/* Seamless Backwards-Compatibility Aliases */}
               <Route path="/cockpit" element={<Navigate to="/dashboard/cockpit" replace />} />
@@ -172,6 +175,7 @@ export default function App() {
               <Route path="/field-operations" element={<Navigate to="/dashboard/field-operations" replace />} />
               <Route path="/roles" element={<Navigate to="/dashboard/roles" replace />} />
               <Route path="/users" element={<Navigate to="/dashboard/users" replace />} />
+              <Route path="/finance" element={<Navigate to="/dashboard/finance" replace />} />
             </Route>
 
             {/* Redirect legacy field-engineer routes to new isolated Engineer Portal */}

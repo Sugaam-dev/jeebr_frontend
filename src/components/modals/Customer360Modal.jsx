@@ -493,16 +493,29 @@ export const Customer360Modal = ({ customerId, onClose }) => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     <span>{isPrepaid ? 'Recharges & Booster Add-ons' : 'Billing Ledger & Invoices'}</span>
-                    <button
-                      onClick={() => {
-                        onClose();
-                        navigate('/revenue');
-                      }}
-                      className="text-blue-600 hover:underline normal-case text-xs font-medium flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Revenue Assurance</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          onClose();
+                          navigate('/finance');
+                        }}
+                        className="text-blue-600 hover:underline normal-case text-xs font-medium flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Finance &amp; Ledger</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        onClick={() => {
+                          onClose();
+                          navigate('/revenue');
+                        }}
+                        className="text-gray-500 hover:text-gray-800 normal-case text-xs font-medium flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Assurance</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                     {data.recent_invoices?.map((inv) => (

@@ -1145,7 +1145,208 @@ export const api = {
       headers: getAuthHeaders()
     });
     return handleResponse(res);
+  },
+
+  // ─── Finance & Billing ───────────────────────────────────────────────────────
+  getFinanceOverview: async (market = null) => {
+    let url = `${API_BASE}/finance/overview`;
+    if (market) url += `?market=${encodeURIComponent(market)}`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getGatewayStatus: async () => {
+    return cachedFetch(`${API_BASE}/finance/gateway-status`, { headers: getAuthHeaders() }, true);
+  },
+
+  getBillingAccounts: async (market = null, status = null) => {
+    let url = `${API_BASE}/finance/accounts?`;
+    if (market) url += `market=${encodeURIComponent(market)}&`;
+    if (status) url += `status=${encodeURIComponent(status)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getBillingAccountDetail: async (accountId) => {
+    return cachedFetch(`${API_BASE}/finance/accounts/${accountId}`, { headers: getAuthHeaders() }, true);
+  },
+
+  createBillingAccount: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/accounts`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  getBillingSubscriptions: async (accountId = null, customerId = null, status = null) => {
+    let url = `${API_BASE}/finance/subscriptions?`;
+    if (accountId) url += `account_id=${encodeURIComponent(accountId)}&`;
+    if (customerId) url += `customer_id=${encodeURIComponent(customerId)}&`;
+    if (status) url += `status=${encodeURIComponent(status)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  createBillingSubscription: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/subscriptions`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  transitionSubscription: async (subscriptionId, action, reason = null) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/subscriptions/${subscriptionId}/transition`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ action, reason })
+    });
+    return handleResponse(res);
+  },
+
+  getFinanceInvoices: async (market = null, status = null, customerId = null) => {
+    let url = `${API_BASE}/finance/invoices?`;
+    if (market) url += `market=${encodeURIComponent(market)}&`;
+    if (status) url += `status=${encodeURIComponent(status)}&`;
+    if (customerId) url += `customer_id=${encodeURIComponent(customerId)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getFinanceInvoiceDetail: async (invoiceId) => {
+    return cachedFetch(`${API_BASE}/finance/invoices/${invoiceId}`, { headers: getAuthHeaders() }, true);
+  },
+
+  issueInvoice: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/invoices/issue`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  downloadInvoice: async (invoiceId) => {
+    return cachedFetch(`${API_BASE}/finance/invoices/${invoiceId}/download`, { headers: getAuthHeaders() }, true);
+  },
+
+  getFinancePayments: async (market = null, customerId = null) => {
+    let url = `${API_BASE}/finance/payments?`;
+    if (market) url += `market=${encodeURIComponent(market)}&`;
+    if (customerId) url += `customer_id=${encodeURIComponent(customerId)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  recordPayment: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/payments`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  getCreditNotes: async (market = null, customerId = null) => {
+    let url = `${API_BASE}/finance/credit-notes?`;
+    if (market) url += `market=${encodeURIComponent(market)}&`;
+    if (customerId) url += `customer_id=${encodeURIComponent(customerId)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  issueCreditNote: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/credit-notes`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  getRefunds: async (market = null) => {
+    let url = `${API_BASE}/finance/refunds?`;
+    if (market) url += `market=${encodeURIComponent(market)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  issueRefund: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/refunds`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  getLedgerEntries: async (market = null, limit = 50) => {
+    let url = `${API_BASE}/finance/ledger/entries?limit=${limit}&`;
+    if (market) url += `market=${encodeURIComponent(market)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getLedgerBalances: async (market = null) => {
+    let url = `${API_BASE}/finance/ledger/balances?`;
+    if (market) url += `market=${encodeURIComponent(market)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  verifyLedger: async (market = null) => {
+    let url = `${API_BASE}/finance/ledger/verify?`;
+    if (market) url += `market=${encodeURIComponent(market)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  reverseLedgerEntry: async (entryId, reason) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/ledger/entries/${entryId}/reverse`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason })
+    });
+    return handleResponse(res);
+  },
+
+  redeemVoucher: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/vouchers/redeem`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  getVoucherRedemptions: async (customerId = null) => {
+    let url = `${API_BASE}/finance/vouchers/redemptions?`;
+    if (customerId) url += `customer_id=${encodeURIComponent(customerId)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  runBillingJob: async (data = {}) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/jobs/billing-run`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  runDunningJob: async (data = {}) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/jobs/overdue-dunning`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
   }
 };
+
 
 
