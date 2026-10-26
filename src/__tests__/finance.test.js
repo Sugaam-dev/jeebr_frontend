@@ -392,3 +392,129 @@ test('api.runBillingJob and api.runDunningJob execute background workflows', asy
   assert.equal(dunnJob.status, 'COMPLETED');
   assert.equal(dunnJob.invoices_flagged_overdue, 3);
 });
+
+test('api.createPaymentOrder initiates payment order with gateway parameters', async () => {
+  clearApiCache();
+  let calledUrl = '';
+  let calledBody = null;
+
+  mockFetch((url, opts) => {
+    calledUrl = url;
+    calledBody = JSON.parse(opts.body);
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({
+        order_id: 'order_test_98765',
+        amount: 824.82,
+        currency: 'INR',
+        provider_name: 'SimulatedPaymentProvider',
+        is_simulated: true,
+        payment_id: 'pay_sim_123',
+        invoice_id: 'inv-uuid-1'
+      })
+    };
+  });
+
+  const res = await api.createPaymentOrder({
+    invoice_id: 'inv-uuid-1',
+    amount: 824.82,
+    payment_method: 'UPI'
+  });
+
+  assert.ok(calledUrl.includes('/finance/payments/create-order'));
+  assert.equal(calledBody.invoice_id, 'inv-uuid-1');
+  assert.equal(calledBody.amount, 824.82);
+  assert.equal(res.order_id, 'order_test_98765');
+  assert.equal(res.is_simulated, true);
+});
+
+test('api.getMyBillingSummary fetches consolidated subscriber billing portfolio', async () => {
+  clearApiCache();
+  let calledUrl = '';
+
+  mockFetch((url) => {
+    calledUrl = url;
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({
+        customer_id: 'cust-1',
+        customer_code: 'CUST-MUM-001',
+        customer_name: 'Aarav Patel',
+        billing_account: {
+          id: 'acc-1',
+          account_number: 'ACC-MUM-001',
+          balance: 0.0,
+          status: 'Active'
+        },
+        active_subscriptions: [
+          { id: 'sub-1', plan_code: 'FIBER-100', status: 'Active' }
+        ],
+        recent_invoices: [
+          { id: 'inv-1', invoice_number: 'INV-2026-0001', total_amount: 824.82, status: 'Issued' }
+        ],
+        recent_payments: [],
+        total_outstanding: 824.82,
+        account_balance: 0.0
+      })
+    };
+  });
+
+  const res = await api.getMyBillingSummary();
+  assert.ok(calledUrl.includes('/finance/my-billing'));
+  assert.equal(res.customer_code, 'CUST-MUM-001');
+  assert.equal(res.total_outstanding, 824.82);
+  assert.equal(res.recent_invoices.length, 1);
+});
+
+test('api.downloadInvoicePdf fetches binary PDF with correct format query parameter', async () => {
+  clearApiCache();
+  let calledUrl = '';
+
+  mockFetch((url) => {
+    calledUrl = url;
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        'content-type': 'application/pdf',
+        'content-disposition': 'attachment; filename="INV-2026-0001.pdf"'
+      }),
+      blob: async () => new Blob(['%PDF-1.4 mock content'], { type: 'application/pdf' })
+    };
+  });
+
+  const blob = await api.downloadInvoicePdf('inv-uuid-1');
+  assert.ok(calledUrl.includes('/finance/invoices/inv-uuid-1/download'));
+  assert.ok(calledUrl.includes('format=pdf'));
+  assert.equal(blob.type, 'application/pdf');
+});
+
+test('api.getStorageStatus returns document storage provider and bucket status', async () => {
+  clearApiCache();
+  let calledUrl = '';
+
+  mockFetch((url) => {
+    calledUrl = url;
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({
+        storage_provider: 'local_disk',
+        is_cloud_storage: false,
+        bucket_or_path: 'var/invoices',
+        is_healthy: true,
+        credentials_configured: false
+      })
+    };
+  });
+
+  const res = await api.getStorageStatus();
+  assert.ok(calledUrl.includes('/finance/storage-status'));
+  assert.equal(res.storage_provider, 'local_disk');
+  assert.equal(res.is_healthy, true);
+});

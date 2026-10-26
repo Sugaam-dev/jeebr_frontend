@@ -11,7 +11,8 @@ import {
   Wifi, 
   MapPin, 
   ChevronDown,
-  Navigation
+  Navigation,
+  CreditCard
 } from 'lucide-react';
 import logoImg from '../../assets/logo_pmrg.png';
 
@@ -96,6 +97,19 @@ export const CustomerLayout = () => {
               <Navigation className="w-3.5 h-3.5 text-blue-600" />
               <span>Live Tracking &bull; PIN</span>
             </NavLink>
+            <NavLink
+              to="/portal/customer/billing"
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`
+              }
+            >
+              <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+              <span>Billing &amp; Invoices</span>
+            </NavLink>
           </nav>
 
           {/* User Controls & Logout */}
@@ -170,6 +184,17 @@ export const CustomerLayout = () => {
           >
             <Navigation className="w-3.5 h-3.5 text-blue-600" />
             <span>Live Tracking</span>
+          </NavLink>
+          <NavLink
+            to="/portal/customer/billing"
+            className={({ isActive }) =>
+              `flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold ${
+                isActive ? 'text-blue-700 bg-blue-100/70' : 'text-slate-600'
+              }`
+            }
+          >
+            <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+            <span>Billing</span>
           </NavLink>
         </div>
       </header>

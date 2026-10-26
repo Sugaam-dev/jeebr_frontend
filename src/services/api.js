@@ -1345,6 +1345,35 @@ export const api = {
       body: JSON.stringify(data)
     });
     return handleResponse(res);
+  },
+
+  // Customer Self-Service Billing & Online Payment Order
+  createPaymentOrder: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/payments/create-order`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  getMyBillingSummary: async () => {
+    return cachedFetch(`${API_BASE}/finance/my-billing`, { headers: getAuthHeaders() }, true);
+  },
+
+  downloadInvoicePdf: async (invoiceId) => {
+    const res = await fetch(`${API_BASE}/finance/invoices/${invoiceId}/download?format=pdf`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to download invoice PDF (Status: ${res.status})`);
+    }
+    return res.blob();
+  },
+
+  getStorageStatus: async () => {
+    return cachedFetch(`${API_BASE}/finance/storage-status`, { headers: getAuthHeaders() }, true);
   }
 };
 
