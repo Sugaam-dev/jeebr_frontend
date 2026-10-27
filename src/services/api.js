@@ -347,6 +347,31 @@ export const api = {
     return handleResponse(res);
   },
 
+  getRecommendationDetail: async (recommendationId) => {
+    return cachedFetch(`${API_BASE}/governance/recommendations/${recommendationId}`, { headers: getAuthHeaders() }, true);
+  },
+
+  executeRecommendation: async (recommendationId, idempotencyKey) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/governance/execute`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ recommendation_id: recommendationId, idempotency_key: idempotencyKey })
+    });
+    return handleResponse(res);
+  },
+
+  generateRecommendation: async (payload) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/governance/recommendations/generate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return handleResponse(res);
+  },
+
+
   getAuditTrail: async (sourceModule, decision, forceRefresh = false) => {
     let url = `${API_BASE}/governance/audit-trail?limit=100&`;
     if (sourceModule) url += `source_module=${encodeURIComponent(sourceModule)}&`;
@@ -1040,6 +1065,30 @@ export const api = {
     return cachedFetch(url, { headers: getAuthHeaders() }, true);
   },
 
+  triggerNetworkScenario: async (payload) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/network/scenarios/trigger`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return handleResponse(res);
+  },
+
+  getActiveNetworkScenarios: async () => {
+    return cachedFetch(`${API_BASE}/network/scenarios/active`, { headers: getAuthHeaders() }, true);
+  },
+
+  recoverNetworkScenario: async (payload = {}) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/network/scenarios/recover`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return handleResponse(res);
+  },
+
   simulateDeviceScenario: async (deviceIdOrCode, scenario) => {
     clearApiCache();
     const res = await fetch(`${API_BASE}/network/devices/${deviceIdOrCode}/simulate`, {
@@ -1347,6 +1396,86 @@ export const api = {
     return handleResponse(res);
   },
 
+  // ─── Background Billing Scheduler & Notification Operations ──────────────
+  getSchedulerOverview: async (params = {}) => {
+    let url = `${API_BASE}/finance/scheduler/overview?`;
+    if (params.market_id) url += `market_id=${encodeURIComponent(params.market_id)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getScheduledJobs: async (params = {}) => {
+    let url = `${API_BASE}/finance/scheduler/jobs?`;
+    if (params.market_id) url += `market_id=${encodeURIComponent(params.market_id)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getSchedulerRunnerStatus: async () => {
+    return cachedFetch(`${API_BASE}/finance/scheduler/runner/status`, { headers: getAuthHeaders() }, true);
+  },
+
+  toggleSchedulerRunner: async (enabled) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/scheduler/runner/toggle`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ enabled })
+    });
+    return handleResponse(res);
+  },
+
+  getBillingJobRuns: async (params = {}) => {
+    let url = `${API_BASE}/finance/scheduler/runs?`;
+    if (params.job_type) url += `job_type=${encodeURIComponent(params.job_type)}&`;
+    if (params.status) url += `status=${encodeURIComponent(params.status)}&`;
+    if (params.market_id) url += `market_id=${encodeURIComponent(params.market_id)}&`;
+    if (params.page) url += `page=${encodeURIComponent(params.page)}&`;
+    if (params.page_size) url += `page_size=${encodeURIComponent(params.page_size)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  getBillingJobRunDetail: async (runId) => {
+    return cachedFetch(`${API_BASE}/finance/scheduler/runs/${encodeURIComponent(runId)}`, { headers: getAuthHeaders() }, true);
+  },
+
+  runSchedulerJob: async (jobType, data = {}) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/scheduler/jobs/${encodeURIComponent(jobType)}/run`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  reconcileJobRun: async (runId, data = {}) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/scheduler/runs/${encodeURIComponent(runId)}/reconcile`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  getNotificationOutbox: async (params = {}) => {
+    let url = `${API_BASE}/finance/notifications/outbox?`;
+    if (params.channel) url += `channel=${encodeURIComponent(params.channel)}&`;
+    if (params.status) url += `status=${encodeURIComponent(params.status)}&`;
+    if (params.market_id) url += `market_id=${encodeURIComponent(params.market_id)}&`;
+    if (params.page) url += `page=${encodeURIComponent(params.page)}&`;
+    if (params.page_size) url += `page_size=${encodeURIComponent(params.page_size)}&`;
+    return cachedFetch(url, { headers: getAuthHeaders() }, true);
+  },
+
+  processNotificationOutbox: async () => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/finance/notifications/outbox/process`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
   // Customer Self-Service Billing & Online Payment Order
   createPaymentOrder: async (data) => {
     clearApiCache();
@@ -1374,8 +1503,214 @@ export const api = {
 
   getStorageStatus: async () => {
     return cachedFetch(`${API_BASE}/finance/storage-status`, { headers: getAuthHeaders() }, true);
+  },
+
+  // ==========================================
+  // CARRIER INVENTORY & ASSET MANAGEMENT
+  // ==========================================
+  getInventoryStats: async () => {
+    return cachedFetch(`${API_BASE}/inventory/stats`, { headers: getAuthHeaders() }, true);
+  },
+  getInventoryCatalogs: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return cachedFetch(`${API_BASE}/inventory/catalogs${qs ? '?' + qs : ''}`, { headers: getAuthHeaders() }, true);
+  },
+  createInventoryCatalog: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/inventory/catalogs`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  getInventoryWarehouses: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return cachedFetch(`${API_BASE}/inventory/warehouses${qs ? '?' + qs : ''}`, { headers: getAuthHeaders() }, true);
+  },
+  createInventoryWarehouse: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/inventory/warehouses`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  getInventoryStocks: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return cachedFetch(`${API_BASE}/inventory/stocks${qs ? '?' + qs : ''}`, { headers: getAuthHeaders() }, true);
+  },
+  receiveInventoryStock: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/inventory/stocks/receipt`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  transferInventoryStock: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/inventory/stocks/transfer`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  adjustInventoryStock: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/inventory/stocks/adjust`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  getInventoryDevices: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return cachedFetch(`${API_BASE}/inventory/devices${qs ? '?' + qs : ''}`, { headers: getAuthHeaders() }, true);
+  },
+  createInventoryDevice: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/inventory/devices`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  returnInventoryDevice: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/inventory/operations/return`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  replaceInventoryDevice: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/inventory/operations/replace`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  getInventoryMovements: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return cachedFetch(`${API_BASE}/inventory/movements${qs ? '?' + qs : ''}`, { headers: getAuthHeaders() }, true);
+  },
+
+  // SentinelOS Tariff Plan & Pricing Engine APIs
+  getTariffs: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return cachedFetch(`${API_BASE}/tariffs${qs ? '?' + qs : ''}`, { headers: getAuthHeaders() }, true);
+  },
+  createTariff: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tariffs`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  getTariff: async (id) => {
+    return cachedFetch(`${API_BASE}/tariffs/${id}`, { headers: getAuthHeaders() }, true);
+  },
+  updateTariff: async (id, data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tariffs/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  deactivateTariff: async (id) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tariffs/${id}/deactivate`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+  calculateTariffCharges: async (data) => {
+    const res = await fetch(`${API_BASE}/tariffs/calculate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  seedTariffs: async () => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/tariffs/seed`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  // SentinelOS Voucher Campaign & Coupon APIs
+  getVouchers: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return cachedFetch(`${API_BASE}/vouchers${qs ? '?' + qs : ''}`, { headers: getAuthHeaders() }, true);
+  },
+  createVoucher: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/vouchers`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  bulkCreateVouchers: async (data) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/vouchers/bulk`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+  getVoucher: async (id) => {
+    return cachedFetch(`${API_BASE}/vouchers/${id}`, { headers: getAuthHeaders() }, true);
+  },
+  pauseVoucher: async (id) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/vouchers/${id}/pause`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+  activateVoucher: async (id) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/vouchers/${id}/activate`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+  revokeVoucher: async (id) => {
+    clearApiCache();
+    const res = await fetch(`${API_BASE}/vouchers/${id}/revoke`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(res);
+  },
+  validateVoucher: async (data) => {
+    const res = await fetch(`${API_BASE}/vouchers/validate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
   }
 };
-
-
-

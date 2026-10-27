@@ -345,6 +345,18 @@ export const OpenMapProvider = ({
       setMapReady(true);
     });
 
+    // Provide transparent 1x1 fallback pixel so missing style/POI sprite icons (e.g. office, gate, swimming_pool) do not log warnings
+    map.on('styleimagemissing', (e) => {
+      const id = e.id;
+      if (map && !map.hasImage(id)) {
+        try {
+          map.addImage(id, { width: 1, height: 1, data: new Uint8Array(4) });
+        } catch {
+          // Ignore duplicate add race
+        }
+      }
+    });
+
     let hasFallbackAttempted = false;
     map.on('error', (e) => {
       const errMsg = e.error?.message || (typeof e.message === 'string' ? e.message : '');

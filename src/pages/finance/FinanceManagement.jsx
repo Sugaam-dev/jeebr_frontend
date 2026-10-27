@@ -26,7 +26,17 @@ import {
   ArrowRight,
   Zap,
   Play,
-  RotateCcw
+  Pause,
+  RotateCcw,
+  Send,
+  Mail,
+  MessageSquare,
+  Smartphone,
+  Lock,
+  Unlock,
+  Activity,
+  Check,
+  X
 } from 'lucide-react';
 
 export const FinanceManagement = () => {
@@ -57,6 +67,7 @@ export const FinanceManagement = () => {
   const [ledgerBalances, setLedgerBalances] = useState([]);
   const [ledgerVerification, setLedgerVerification] = useState(null);
   const [voucherRedemptions, setVoucherRedemptions] = useState([]);
+  const [voucherCampaigns, setVoucherCampaigns] = useState([]);
 
   // Modals & sub-views
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -66,8 +77,31 @@ export const FinanceManagement = () => {
   const [showIssueInvoiceModal, setShowIssueInvoiceModal] = useState(false);
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
   const [showRedeemVoucherModal, setShowRedeemVoucherModal] = useState(false);
+  const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
+  const [showBulkCampaignModal, setShowBulkCampaignModal] = useState(false);
   const [showReversalModal, setShowReversalModal] = useState(false);
   const [reversalTargetEntry, setReversalTargetEntry] = useState(null);
+
+  // Background Scheduler & Operations Console State
+  const [schedulerOverview, setSchedulerOverview] = useState(null);
+  const [scheduledJobs, setScheduledJobs] = useState([]);
+  const [billingJobRuns, setBillingJobRuns] = useState([]);
+  const [jobRunTotal, setJobRunTotal] = useState(0);
+  const [jobRunPage, setJobRunPage] = useState(1);
+  const [jobRunFilterStatus, setJobRunFilterStatus] = useState('');
+  const [jobRunFilterType, setJobRunFilterType] = useState('');
+  const [selectedRunDetail, setSelectedRunDetail] = useState(null);
+  const [showRunDetailModal, setShowRunDetailModal] = useState(false);
+  const [showTriggerJobModal, setShowTriggerJobModal] = useState(false);
+  const [targetJobType, setTargetJobType] = useState('RECURRING_BILLING');
+  const [targetJobMarket, setTargetJobMarket] = useState('all');
+  const [reconcileReason, setReconcileReason] = useState('');
+  const [notificationOutbox, setNotificationOutbox] = useState([]);
+  const [notifTotal, setNotifTotal] = useState(0);
+  const [notifSummary, setNotifSummary] = useState({});
+  const [notifChannelFilter, setNotifChannelFilter] = useState('');
+  const [notifStatusFilter, setNotifStatusFilter] = useState('');
+  const [notifPage, setNotifPage] = useState(1);
 
   // Form states
   const [newAccountForm, setNewAccountForm] = useState({
@@ -100,6 +134,37 @@ export const FinanceManagement = () => {
   const [redeemVoucherForm, setRedeemVoucherForm] = useState({
     customer_id: '',
     voucher_code: ''
+  });
+
+  const [newCampaignForm, setNewCampaignForm] = useState({
+    voucher_code: '',
+    campaign_name: '',
+    description: '',
+    voucher_type: 'BILL_DISCOUNT',
+    discount_amount: '100',
+    discount_percent: '0',
+    max_discount_cap: '',
+    min_invoice_amount: '0',
+    max_redemptions: 100,
+    per_customer_limit: 1,
+    valid_until: '',
+    market_id: 'ALL'
+  });
+
+  const [bulkCampaignForm, setBulkCampaignForm] = useState({
+    prefix: 'PROMO',
+    count: 10,
+    campaign_name: '',
+    description: '',
+    voucher_type: 'BILL_DISCOUNT',
+    discount_amount: '100',
+    discount_percent: '0',
+    max_discount_cap: '',
+    min_invoice_amount: '0',
+    max_redemptions: 1,
+    per_customer_limit: 1,
+    valid_until: '',
+    market_id: 'ALL'
   });
 
   const [reversalReason, setReversalReason] = useState('');
@@ -155,8 +220,38 @@ export const FinanceManagement = () => {
         setLedgerBalances(balancesRes || []);
         setLedgerVerification(verifyRes || null);
       } else if (activeTab === 'vouchers') {
-        const vrRes = await api.getVoucherRedemptions();
+        const [vrRes, vCampRes] = await Promise.all([
+          api.getVoucherRedemptions(),
+          api.getVouchers()
+        ]);
         setVoucherRedemptions(vrRes || []);
+        setVoucherCampaigns(vCampRes || []);
+      } else if (activeTab === 'scheduler') {
+        const marketParam = currentMarket === 'all' ? null : currentMarket;
+        const [schedOverview, runsRes, notifRes] = await Promise.all([
+          api.getSchedulerOverview({ market_id: marketParam }),
+          api.getBillingJobRuns({
+            market_id: marketParam,
+            status: jobRunFilterStatus || undefined,
+            job_type: jobRunFilterType || undefined,
+            page: jobRunPage,
+            page_size: 10
+          }),
+          api.getNotificationOutbox({
+            market_id: marketParam,
+            channel: notifChannelFilter || undefined,
+            status: notifStatusFilter || undefined,
+            page: notifPage,
+            page_size: 10
+          })
+        ]);
+        setSchedulerOverview(schedOverview || null);
+        setScheduledJobs(schedOverview?.jobs || []);
+        setBillingJobRuns(runsRes?.items || []);
+        setJobRunTotal(runsRes?.total || 0);
+        setNotificationOutbox(notifRes?.items || []);
+        setNotifTotal(notifRes?.total || 0);
+        setNotifSummary(notifRes?.summary_by_status || {});
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to load finance data');
@@ -169,6 +264,87 @@ export const FinanceManagement = () => {
   useEffect(() => {
     loadData();
   }, [activeTab, currentMarket]);
+
+  useEffect(() => {
+    if (activeTab === 'scheduler') {
+      loadData();
+    }
+  }, [jobRunPage, jobRunFilterStatus, jobRunFilterType, notifChannelFilter, notifStatusFilter, notifPage]);
+
+  // Background Scheduler Handlers
+  const handleTriggerJobSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (isReadOnly) return;
+    setActionLoading(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      const res = await api.runSchedulerJob(targetJobType, {
+        market_id: targetJobMarket === 'all' ? null : targetJobMarket
+      });
+      setSuccessMsg(`Job ${targetJobType} executed successfully: ${res.processed ?? 0} records processed.`);
+      setShowTriggerJobModal(false);
+      loadData(true);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to trigger job');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReconcileRunAction = async (runId, action) => {
+    if (isReadOnly) return;
+    setActionLoading(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      const res = await api.reconcileJobRun(runId, {
+        action: action,
+        reason: reconcileReason || `Manual operator ${action}`
+      });
+      setSuccessMsg(`Job run ${runId.slice(0, 8)}... successfully ${action === 'RETRY' ? 'retried' : 'reconciled'}.`);
+      setShowRunDetailModal(false);
+      setSelectedRunDetail(null);
+      setReconcileReason('');
+      loadData(true);
+    } catch (err) {
+      setErrorMsg(err.message || `Failed to ${action.toLowerCase()} job run`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleProcessOutboxNow = async () => {
+    if (isReadOnly) return;
+    setActionLoading(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      const res = await api.processNotificationOutbox();
+      setSuccessMsg(`Notification Outbox processed: ${res.processed ?? 0} items dispatched.`);
+      loadData(true);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to process notification outbox');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleRunner = async (enabled) => {
+    if (isReadOnly) return;
+    setActionLoading(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    try {
+      const res = await api.toggleSchedulerRunner(enabled);
+      setSuccessMsg(`Automated scheduler runner ${enabled ? 'started' : 'paused'} successfully.`);
+      loadData(true);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to toggle scheduler runner');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Action Handlers
   const handleRunBillingJob = async () => {
@@ -301,6 +477,94 @@ export const FinanceManagement = () => {
       loadData(true);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to redeem voucher');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreateCampaign = async (e) => {
+    e.preventDefault();
+    if (isReadOnly) return;
+    setActionLoading(true);
+    try {
+      const payload = {
+        ...newCampaignForm,
+        discount_amount: parseFloat(newCampaignForm.discount_amount) || 0,
+        discount_percent: parseFloat(newCampaignForm.discount_percent) || 0,
+        max_discount_cap: newCampaignForm.max_discount_cap ? parseFloat(newCampaignForm.max_discount_cap) : null,
+        min_invoice_amount: parseFloat(newCampaignForm.min_invoice_amount) || 0,
+        max_redemptions: parseInt(newCampaignForm.max_redemptions, 10) || 1,
+        per_customer_limit: parseInt(newCampaignForm.per_customer_limit, 10) || 1,
+        valid_until: newCampaignForm.valid_until ? new Date(newCampaignForm.valid_until).toISOString() : new Date(Date.now() + 90 * 86400000).toISOString(),
+        status: 'ACTIVE'
+      };
+      const res = await api.createVoucher(payload);
+      setSuccessMsg(`Voucher campaign '${res.voucher_code}' created successfully.`);
+      setShowCreateCampaignModal(false);
+      loadData(true);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to create campaign');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkCreateCampaign = async (e) => {
+    e.preventDefault();
+    if (isReadOnly) return;
+    setActionLoading(true);
+    try {
+      const payload = {
+        ...bulkCampaignForm,
+        count: parseInt(bulkCampaignForm.count, 10) || 5,
+        discount_amount: parseFloat(bulkCampaignForm.discount_amount) || 0,
+        discount_percent: parseFloat(bulkCampaignForm.discount_percent) || 0,
+        max_discount_cap: bulkCampaignForm.max_discount_cap ? parseFloat(bulkCampaignForm.max_discount_cap) : null,
+        min_invoice_amount: parseFloat(bulkCampaignForm.min_invoice_amount) || 0,
+        max_redemptions: parseInt(bulkCampaignForm.max_redemptions, 10) || 1,
+        per_customer_limit: parseInt(bulkCampaignForm.per_customer_limit, 10) || 1,
+        valid_until: bulkCampaignForm.valid_until ? new Date(bulkCampaignForm.valid_until).toISOString() : new Date(Date.now() + 90 * 86400000).toISOString()
+      };
+      const res = await api.bulkCreateVouchers(payload);
+      setSuccessMsg(`Generated ${res.length} unique vouchers with prefix '${payload.prefix}'.`);
+      setShowBulkCampaignModal(false);
+      loadData(true);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to bulk generate vouchers');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleVoucherStatus = async (id, currentStatus) => {
+    if (isReadOnly) return;
+    setActionLoading(true);
+    try {
+      if (currentStatus === 'ACTIVE') {
+        await api.pauseVoucher(id);
+        setSuccessMsg('Voucher campaign paused.');
+      } else {
+        await api.activateVoucher(id);
+        setSuccessMsg('Voucher campaign activated.');
+      }
+      loadData(true);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to update voucher status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRevokeVoucher = async (id, code) => {
+    if (isReadOnly) return;
+    if (!window.confirm(`Revoke voucher '${code}' permanently?`)) return;
+    setActionLoading(true);
+    try {
+      await api.revokeVoucher(id);
+      setSuccessMsg(`Voucher '${code}' revoked.`);
+      loadData(true);
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to revoke voucher');
     } finally {
       setActionLoading(false);
     }
@@ -511,7 +775,8 @@ export const FinanceManagement = () => {
           { id: 'invoices', label: 'Invoices & Billing', icon: Receipt },
           { id: 'payments', label: 'Payments & Allocations', icon: CreditCard },
           { id: 'ledger', label: 'General Ledger', icon: BookOpen },
-          { id: 'vouchers', label: 'Vouchers & Retention', icon: Tag }
+          { id: 'vouchers', label: 'Vouchers & Retention', icon: Tag },
+          { id: 'scheduler', label: 'Scheduler & Operations', icon: Clock }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1212,7 +1477,129 @@ export const FinanceManagement = () => {
       {/* ─── TAB 6: VOUCHERS & RETENTION ─── */}
       {activeTab === 'vouchers' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          {/* Section 1: Campaign Definitions */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Tag className="w-5 h-5 text-indigo-600" />
+                <span>Voucher Campaigns & Rules ({voucherCampaigns.length})</span>
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Authoritative campaign policies, quota limits, discount rules (fixed / percentage with caps), and lifecycle statuses.
+              </p>
+            </div>
+            {!isReadOnly && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowBulkCampaignModal(true)}
+                  className="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-bold border border-indigo-200 flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Bulk Generate</span>
+                </button>
+                <button
+                  onClick={() => setShowCreateCampaignModal(true)}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create Campaign</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden card-shadow">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="p-3.5">Voucher Code / Campaign</th>
+                    <th className="p-3.5">Benefit Type</th>
+                    <th className="p-3.5">Discount Rate</th>
+                    <th className="p-3.5">Redemption Quota</th>
+                    <th className="p-3.5">Per-Customer Cap</th>
+                    <th className="p-3.5">Valid Until</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-sans">
+                  {voucherCampaigns.map((v) => (
+                    <tr key={v.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="p-3.5">
+                        <div className="font-mono font-bold text-indigo-700">{v.voucher_code}</div>
+                        <div className="text-[11px] text-gray-500">{v.campaign_name}</div>
+                      </td>
+                      <td className="p-3.5 font-bold text-gray-800">
+                        {v.voucher_type}
+                      </td>
+                      <td className="p-3.5 font-medium text-gray-900">
+                        {v.voucher_type === 'PERCENT_DISCOUNT' ? (
+                          <span>{v.discount_percent}% (Cap: &#8377;{v.max_discount_cap || 'None'})</span>
+                        ) : v.voucher_type === 'BILL_DISCOUNT' ? (
+                          <span>&#8377;{Number(v.discount_amount).toLocaleString()}</span>
+                        ) : (
+                          <span>Service Benefit</span>
+                        )}
+                      </td>
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-gray-700">{v.current_redemptions} / {v.max_redemptions}</span>
+                          <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-indigo-600 rounded-full"
+                              style={{ width: `${Math.min(100, (v.current_redemptions / v.max_redemptions) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3.5 text-gray-600">{v.per_customer_limit} max</td>
+                      <td className="p-3.5 text-gray-500 font-mono">
+                        {v.valid_until ? new Date(v.valid_until).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="p-3.5">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          v.status === 'ACTIVE'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : v.status === 'PAUSED'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        }`}>
+                          {v.status}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right space-x-1.5">
+                        {!isReadOnly && v.status !== 'REVOKED' && (
+                          <>
+                            <button
+                              onClick={() => handleToggleVoucherStatus(v.id, v.status)}
+                              className="px-2 py-1 text-[11px] font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded"
+                            >
+                              {v.status === 'ACTIVE' ? 'Pause' : 'Activate'}
+                            </button>
+                            <button
+                              onClick={() => handleRevokeVoucher(v.id, v.voucher_code)}
+                              className="px-2 py-1 text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded"
+                            >
+                              Revoke
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {voucherCampaigns.length === 0 && (
+                    <tr>
+                      <td colSpan="8" className="p-8 text-center text-gray-400">No voucher campaign definitions configured.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Section 2: Redemptions History */}
+          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
             <div>
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <Tag className="w-5 h-5 text-indigo-600" />
@@ -1283,7 +1670,547 @@ export const FinanceManagement = () => {
         </div>
       )}
 
-      {/* ─── MODAL: INVOICE DOCUMENT PREVIEW ─── */}
+      {/* ─── TAB 7: BACKGROUND SCHEDULER & OPERATIONS CONSOLE ─── */}
+      {activeTab === 'scheduler' && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-slate-800 shadow-sm">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  <Activity className="w-4 h-4" />
+                </span>
+                <h3 className="text-sm font-bold tracking-tight">Background Scheduling &amp; Job Operations Console</h3>
+
+                {schedulerOverview?.runner ? (
+                  schedulerOverview.runner.enabled && schedulerOverview.runner.is_running ? (
+                    schedulerOverview.runner.is_leader ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        RUNNER ACTIVE (LEADER)
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                        RUNNER STANDBY (REPLICA)
+                      </span>
+                    )
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/30 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+                      RUNNER PAUSED
+                    </span>
+                  )
+                ) : null}
+
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/30 text-indigo-300 border border-indigo-500/40">
+                  TZ: {schedulerOverview?.runner?.timezone || 'UTC'}
+                </span>
+
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                  Redis Distributed Locks
+                </span>
+              </div>
+              <p className="text-xs text-slate-300">
+                Authoritative automated runner and monitoring for billing cycles, overdue dunning escalation, and durable notification outbox delivery.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {schedulerOverview?.runner && (
+                <button
+                  onClick={() => handleToggleRunner(!schedulerOverview.runner.enabled)}
+                  disabled={isReadOnly || actionLoading}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border cursor-pointer disabled:opacity-50 transition-all ${
+                    schedulerOverview.runner.enabled
+                      ? 'bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border-amber-700/50'
+                      : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border-emerald-700/50'
+                  }`}
+                >
+                  {schedulerOverview.runner.enabled ? (
+                    <>
+                      <Pause className="w-3.5 h-3.5" />
+                      <span>Pause Runner</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3.5 h-3.5" />
+                      <span>Resume Runner</span>
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => loadData(true)}
+                disabled={refreshing || actionLoading}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 cursor-pointer disabled:opacity-50 transition-all"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <span>Refresh Telemetry</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Operational KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-xs">
+              <div className="text-[11px] font-medium text-gray-500">Total Executions</div>
+              <div className="text-xl font-bold text-gray-900 mt-1 font-mono">
+                {schedulerOverview?.total_runs ?? billingJobRuns.length}
+              </div>
+              <div className="text-[10px] text-gray-400 mt-0.5">Durable execution runs</div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-xs">
+              <div className="text-[11px] font-medium text-gray-500">Success Rate</div>
+              <div className="text-xl font-bold text-emerald-600 mt-1 font-mono">
+                {schedulerOverview?.total_runs
+                  ? `${Math.round(((schedulerOverview.successful_runs || 0) / schedulerOverview.total_runs) * 100)}%`
+                  : '100%'}
+              </div>
+              <div className="text-[10px] text-emerald-600 mt-0.5">
+                {schedulerOverview?.successful_runs ?? 0} completed runs
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-xs">
+              <div className="text-[11px] font-medium text-gray-500">Active Distributed Locks</div>
+              <div className="flex items-center gap-1.5 mt-1">
+                {(schedulerOverview?.active_locks || 0) > 0 ? (
+                  <>
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
+                    <span className="text-xl font-bold text-amber-600 font-mono">
+                      {schedulerOverview?.active_locks} Active
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-xl font-bold text-emerald-600 font-mono">0 Idle</span>
+                  </>
+                )}
+              </div>
+              <div className="text-[10px] text-gray-400 mt-0.5">Fail-closed concurrency protection</div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-xs">
+              <div className="text-[11px] font-medium text-gray-500">Failed / Stalled</div>
+              <div className={`text-xl font-bold mt-1 font-mono ${(schedulerOverview?.failed_runs || 0) > 0 ? 'text-rose-600' : 'text-gray-900'}`}>
+                {schedulerOverview?.failed_runs ?? 0}
+              </div>
+              <div className="text-[10px] text-gray-400 mt-0.5">Requires operator review</div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-white border border-gray-200 shadow-xs">
+              <div className="text-[11px] font-medium text-gray-500">Outbox Pending</div>
+              <div className="text-xl font-bold text-blue-600 mt-1 font-mono">
+                {schedulerOverview?.outbox_queued ?? 0}
+              </div>
+              <div className="text-[10px] text-gray-400 mt-0.5">
+                {schedulerOverview?.outbox_sent ?? 0} dispatched successfully
+              </div>
+            </div>
+          </div>
+
+          {/* Section 1: Allowlisted Background Schedulers */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Allowlisted Scheduled Jobs</h4>
+                <p className="text-[11px] text-gray-500">Authoritative automated jobs with distributed concurrency locks and durable audit trails.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {(scheduledJobs.length > 0 ? scheduledJobs : [
+                {
+                  job_type: 'RECURRING_BILLING',
+                  name: 'Recurring Billing Cycle',
+                  description: 'Evaluates active subscriptions across market tenants, generates monthly cycle invoices with GST breakdown, and tracks accounts receivable.',
+                  cadence: 'Daily at 00:00 UTC (1st & 15th for monthly cycles)',
+                  is_locked: false
+                },
+                {
+                  job_type: 'OVERDUE_DUNNING',
+                  name: 'Overdue Dunning & Aging Evaluation',
+                  description: 'Evaluates unpaid past-due invoices, calculates aging brackets (1-30, 31-60, 61-90, 90+ days), and enqueues overdue reminders to Notification Outbox.',
+                  cadence: 'Daily at 06:00 UTC',
+                  is_locked: false
+                },
+                {
+                  job_type: 'OUTBOX_DISPATCH',
+                  name: 'Notification Outbox Dispatcher',
+                  description: 'Processes pending outbox items and dispatches SMS/Email/WhatsApp alerts with exponential backoff and carrier delivery receipts.',
+                  cadence: 'Every 5 minutes',
+                  is_locked: false
+                }
+              ]).map((job) => (
+                <div key={job.job_type} className="p-4 rounded-2xl bg-white border border-gray-200 shadow-xs flex flex-col justify-between hover:border-blue-300 transition-all">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                        {job.job_type}
+                      </span>
+                      {job.is_locked ? (
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <Lock className="w-3 h-3 text-amber-600 animate-pulse" />
+                          <span>LOCKED</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          <Unlock className="w-3 h-3 text-emerald-600" />
+                          <span>IDLE</span>
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-gray-900">{job.name}</h5>
+                      <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{job.description}</p>
+                    </div>
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-gray-400" />
+                        <span>Cadence:</span>
+                      </span>
+                      <span className="font-semibold text-gray-700 text-[10px]">{job.cadence}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-indigo-500" />
+                        <span>Next Run:</span>
+                      </span>
+                      <span className="font-semibold font-mono text-indigo-700 text-[10px]">
+                        {job.next_run_estimated ? new Date(job.next_run_estimated).toLocaleString() : 'Automated'}
+                      </span>
+                    </div>
+                    {job.last_run && (
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 space-y-1 text-[10px]">
+                        <div className="flex justify-between items-center text-gray-500">
+                          <span>Last Run:</span>
+                          <span className={`font-bold px-1.5 py-0.2 rounded ${
+                            job.last_run.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
+                            job.last_run.status === 'FAILED' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700'
+                          }`}>
+                            {job.last_run.status}
+                          </span>
+                        </div>
+                        <div className="text-gray-400 font-mono">
+                          {job.last_run.finish_time ? new Date(job.last_run.finish_time).toLocaleString() : 'N/A'}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 mt-2 border-t border-gray-100 flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setTargetJobType(job.job_type);
+                        setTargetJobMarket(currentMarket);
+                        setShowTriggerJobModal(true);
+                      }}
+                      disabled={isReadOnly || actionLoading || job.is_locked}
+                      className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50 transition-all"
+                    >
+                      <Play className="w-3 h-3 fill-white" />
+                      <span>Execute Job Now</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Section 2: Durable Job Execution History */}
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-xs overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Durable Job Execution History</h4>
+                <p className="text-[11px] text-gray-500">Immutable ledger of automated and operator-triggered billing job executions.</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={jobRunFilterType}
+                  onChange={(e) => setJobRunFilterType(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">All Job Types</option>
+                  <option value="RECURRING_BILLING">RECURRING_BILLING</option>
+                  <option value="OVERDUE_DUNNING">OVERDUE_DUNNING</option>
+                  <option value="OUTBOX_DISPATCH">OUTBOX_DISPATCH</option>
+                </select>
+
+                <select
+                  value={jobRunFilterStatus}
+                  onChange={(e) => setJobRunFilterStatus(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="COMPLETED">COMPLETED</option>
+                  <option value="RUNNING">RUNNING</option>
+                  <option value="FAILED">FAILED</option>
+                  <option value="SKIPPED">SKIPPED</option>
+                  <option value="RECONCILED">RECONCILED</option>
+                  <option value="RETRIED">RETRIED</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-gray-200 text-gray-500 uppercase text-[10px] font-semibold">
+                    <th className="py-2.5 px-4">Job Run ID &amp; Type</th>
+                    <th className="py-2.5 px-3">Market</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Start &amp; Duration</th>
+                    <th className="py-2.5 px-3 text-right">Records Succeeded / Proc.</th>
+                    <th className="py-2.5 px-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {billingJobRuns.map((run) => (
+                    <tr key={run.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="font-mono text-gray-900 font-bold text-xs">{run.job_type}</div>
+                        <div className="text-[10px] text-gray-400 font-mono mt-0.5">ID: {run.id.slice(0, 8)}...</div>
+                      </td>
+                      <td className="py-3 px-3 font-mono text-[11px] text-gray-600 uppercase">
+                        {run.market_id || 'ALL MARKETS'}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          run.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          run.status === 'FAILED' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                          run.status === 'RUNNING' ? 'bg-blue-50 text-blue-700 border border-blue-200 animate-pulse' :
+                          run.status === 'RECONCILED' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                          run.status === 'SKIPPED' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {run.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-gray-600">
+                        <div>{new Date(run.start_time).toLocaleString()}</div>
+                        <div className="text-[10px] text-gray-400 font-mono mt-0.5">
+                          {run.duration_seconds !== null ? `${run.duration_seconds}s` : 'Running...'}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono">
+                        <span className="font-bold text-gray-900">{run.records_succeeded}</span>
+                        <span className="text-gray-400"> / {run.records_processed}</span>
+                        {run.records_failed > 0 && (
+                          <div className="text-[10px] text-rose-600 font-bold">
+                            {run.records_failed} failed
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => {
+                            setSelectedRunDetail(run);
+                            setShowRunDetailModal(true);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer transition-all"
+                        >
+                          Inspect / Reconcile
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {billingJobRuns.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="p-8 text-center text-gray-400">
+                        No background billing job execution runs recorded.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {jobRunTotal > 10 && (
+              <div className="p-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                <span>Total Runs: {jobRunTotal}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={jobRunPage <= 1}
+                    onClick={() => setJobRunPage(jobRunPage - 1)}
+                    className="px-2.5 py-1 rounded border border-gray-200 disabled:opacity-40 cursor-pointer"
+                  >
+                    Prev
+                  </button>
+                  <span className="font-mono text-gray-700">Page {jobRunPage}</span>
+                  <button
+                    disabled={jobRunPage * 10 >= jobRunTotal}
+                    onClick={() => setJobRunPage(jobRunPage + 1)}
+                    className="px-2.5 py-1 rounded border border-gray-200 disabled:opacity-40 cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Durable Notification Outbox Queue */}
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-xs overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Transactional Notification Outbox</h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    PII &amp; OTP Redacted
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-500">Decoupled notification dispatch queue with idempotency keys and exponential backoff.</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={notifChannelFilter}
+                  onChange={(e) => setNotifChannelFilter(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">All Channels</option>
+                  <option value="SMS">SMS</option>
+                  <option value="EMAIL">EMAIL</option>
+                  <option value="WHATSAPP">WHATSAPP</option>
+                </select>
+
+                <select
+                  value={notifStatusFilter}
+                  onChange={(e) => setNotifStatusFilter(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">All Delivery Statuses</option>
+                  <option value="QUEUED">QUEUED</option>
+                  <option value="SENT">SENT</option>
+                  <option value="DELIVERED">DELIVERED</option>
+                  <option value="FAILED">FAILED</option>
+                  <option value="RETRYING">RETRYING</option>
+                </select>
+
+                <button
+                  onClick={handleProcessOutboxNow}
+                  disabled={isReadOnly || actionLoading}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Dispatch Pending Outbox</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-gray-200 text-gray-500 uppercase text-[10px] font-semibold">
+                    <th className="py-2.5 px-4">Channel &amp; Recipient</th>
+                    <th className="py-2.5 px-3">Event Type</th>
+                    <th className="py-2.5 px-3">Message (Sanitized)</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3 text-center">Attempts</th>
+                    <th className="py-2.5 px-3">Gateway Mode</th>
+                    <th className="py-2.5 px-4">Created / Sent At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {notificationOutbox.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          {item.channel === 'SMS' ? <Smartphone className="w-3.5 h-3.5 text-blue-600" /> :
+                           item.channel === 'EMAIL' ? <Mail className="w-3.5 h-3.5 text-indigo-600" /> :
+                           <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />}
+                          <span className="font-mono font-bold text-gray-900">{item.recipient_masked}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-mono mt-0.5">Key: {item.idempotency_key?.slice(0, 16)}...</div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                          {item.event_type}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 max-w-xs text-gray-700 text-[11px] truncate" title={item.message_preview}>
+                        {item.message_preview}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          item.status === 'SENT' || item.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          item.status === 'QUEUED' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                          item.status === 'RETRYING' ? 'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse' :
+                          'bg-rose-50 text-rose-700 border border-rose-200'
+                        }`}>
+                          {item.status}
+                        </span>
+                        {item.last_error_sanitized && (
+                          <div className="text-[10px] text-rose-600 mt-0.5 truncate max-w-xs" title={item.last_error_sanitized}>
+                            {item.last_error_sanitized}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-center font-mono text-[11px]">
+                        {item.attempt_count} / {item.max_attempts}
+                      </td>
+                      <td className="py-3 px-3">
+                        {item.is_simulated ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                            SIMULATED
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                            LIVE CARRIER
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-gray-500 text-[11px]">
+                        <div>{new Date(item.created_at).toLocaleString()}</div>
+                        {item.sent_at && (
+                          <div className="text-[10px] text-emerald-600 font-mono">
+                            Sent: {new Date(item.sent_at).toLocaleTimeString()}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {notificationOutbox.length === 0 && (
+                    <tr>
+                      <td colSpan="7" className="p-8 text-center text-gray-400">
+                        No notification outbox items recorded for selected filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Outbox Pagination Controls */}
+            {notifTotal > 10 && (
+              <div className="p-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                <span>Total Notifications: {notifTotal}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={notifPage <= 1}
+                    onClick={() => setNotifPage(notifPage - 1)}
+                    className="px-2.5 py-1 rounded border border-gray-200 disabled:opacity-40 cursor-pointer"
+                  >
+                    Prev
+                  </button>
+                  <span className="font-mono text-gray-700">Page {notifPage}</span>
+                  <button
+                    disabled={notifPage * 10 >= notifTotal}
+                    onClick={() => setNotifPage(notifPage + 1)}
+                    className="px-2.5 py-1 rounded border border-gray-200 disabled:opacity-40 cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {invoiceDocument && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-[#E2E8F0] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden modal-shadow">
@@ -1735,6 +2662,467 @@ export const FinanceManagement = () => {
           </div>
         </div>
       )}
+      {/* ─── MODAL: CREATE VOUCHER CAMPAIGN ─── */}
+      {showCreateCampaignModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl w-full max-w-lg overflow-hidden modal-shadow">
+            <div className="bg-slate-50 border-b border-gray-200 p-4 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Tag className="w-4 h-4 text-indigo-600" />
+                <span>Create Voucher Campaign</span>
+              </h3>
+              <button onClick={() => setShowCreateCampaignModal(false)} className="text-gray-400 hover:text-gray-700 text-xs font-bold cursor-pointer">Close</button>
+            </div>
+            <form onSubmit={handleCreateCampaign} className="p-5 space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Coupon Code *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. WELCOME100"
+                    value={newCampaignForm.voucher_code}
+                    onChange={(e) => setNewCampaignForm({ ...newCampaignForm, voucher_code: e.target.value.toUpperCase() })}
+                    className="w-full p-2 border border-gray-300 rounded-lg font-mono uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Campaign Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Welcome Concession"
+                    value={newCampaignForm.campaign_name}
+                    onChange={(e) => setNewCampaignForm({ ...newCampaignForm, campaign_name: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Benefit Type</label>
+                  <select
+                    value={newCampaignForm.voucher_type}
+                    onChange={(e) => setNewCampaignForm({ ...newCampaignForm, voucher_type: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg bg-white"
+                  >
+                    <option value="BILL_DISCOUNT">Bill Discount (Fixed &#8377;)</option>
+                    <option value="PERCENT_DISCOUNT">Percentage Discount (%)</option>
+                    <option value="SPEED_BOOST">Speed Boost (+50M)</option>
+                    <option value="DATA_TOPUP">Data Topup (+5G)</option>
+                    <option value="OTT_PASS">OTT Pass</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Market Scope</label>
+                  <select
+                    value={newCampaignForm.market_id}
+                    onChange={(e) => setNewCampaignForm({ ...newCampaignForm, market_id: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg bg-white"
+                  >
+                    <option value="ALL">ALL Markets</option>
+                    <option value="mumbai">Mumbai</option>
+                    <option value="kolkata">Kolkata</option>
+                  </select>
+                </div>
+              </div>
+
+              {newCampaignForm.voucher_type === 'BILL_DISCOUNT' ? (
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Discount Amount (&#8377;)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={newCampaignForm.discount_amount}
+                    onChange={(e) => setNewCampaignForm({ ...newCampaignForm, discount_amount: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg font-mono"
+                  />
+                </div>
+              ) : newCampaignForm.voucher_type === 'PERCENT_DISCOUNT' ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-1">Discount Percent (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      placeholder="e.g. 20"
+                      value={newCampaignForm.discount_percent}
+                      onChange={(e) => setNewCampaignForm({ ...newCampaignForm, discount_percent: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-lg font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-1">Max Cap (&#8377;) (Optional)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 300"
+                      value={newCampaignForm.max_discount_cap}
+                      onChange={(e) => setNewCampaignForm({ ...newCampaignForm, max_discount_cap: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-lg font-mono"
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Total Global Quota</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={newCampaignForm.max_redemptions}
+                    onChange={(e) => setNewCampaignForm({ ...newCampaignForm, max_redemptions: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Per-Customer Limit</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={newCampaignForm.per_customer_limit}
+                    onChange={(e) => setNewCampaignForm({ ...newCampaignForm, per_customer_limit: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-1">Valid Until (Expiration Date)</label>
+                <input
+                  type="date"
+                  value={newCampaignForm.valid_until}
+                  onChange={(e) => setNewCampaignForm({ ...newCampaignForm, valid_until: e.target.value })}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCampaignModal(false)}
+                  className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg cursor-pointer shadow-xs"
+                >
+                  Save Campaign
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: BULK GENERATE VOUCHERS ─── */}
+      {showBulkCampaignModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl w-full max-w-lg overflow-hidden modal-shadow">
+            <div className="bg-slate-50 border-b border-gray-200 p-4 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Tag className="w-4 h-4 text-indigo-600" />
+                <span>Bulk Generate Unique Vouchers</span>
+              </h3>
+              <button onClick={() => setShowBulkCampaignModal(false)} className="text-gray-400 hover:text-gray-700 text-xs font-bold cursor-pointer">Close</button>
+            </div>
+            <form onSubmit={handleBulkCreateCampaign} className="p-5 space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Code Prefix *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. FLASH"
+                    value={bulkCampaignForm.prefix}
+                    onChange={(e) => setBulkCampaignForm({ ...bulkCampaignForm, prefix: e.target.value.toUpperCase() })}
+                    className="w-full p-2 border border-gray-300 rounded-lg font-mono uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Quantity (1-500) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    required
+                    value={bulkCampaignForm.count}
+                    onChange={(e) => setBulkCampaignForm({ ...bulkCampaignForm, count: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-1">Campaign Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Flash Sale Batch 1"
+                  value={bulkCampaignForm.campaign_name}
+                  onChange={(e) => setBulkCampaignForm({ ...bulkCampaignForm, campaign_name: e.target.value })}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Discount Amount (&#8377;)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={bulkCampaignForm.discount_amount}
+                    onChange={(e) => setBulkCampaignForm({ ...bulkCampaignForm, discount_amount: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-semibold mb-1">Market</label>
+                  <select
+                    value={bulkCampaignForm.market_id}
+                    onChange={(e) => setBulkCampaignForm({ ...bulkCampaignForm, market_id: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg bg-white"
+                  >
+                    <option value="ALL">ALL</option>
+                    <option value="mumbai">Mumbai</option>
+                    <option value="kolkata">Kolkata</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-1">Valid Until (Expiration Date)</label>
+                <input
+                  type="date"
+                  value={bulkCampaignForm.valid_until}
+                  onChange={(e) => setBulkCampaignForm({ ...bulkCampaignForm, valid_until: e.target.value })}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkCampaignModal(false)}
+                  className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg cursor-pointer shadow-xs"
+                >
+                  Generate Vouchers
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: TRIGGER ALLOWLISTED SCHEDULER JOB ─── */}
+      {showTriggerJobModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl w-full max-w-md overflow-hidden modal-shadow">
+            <div className="bg-slate-50 border-b border-gray-200 p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Play className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-bold text-gray-900">Execute Background Job</h3>
+              </div>
+              <button
+                onClick={() => setShowTriggerJobModal(false)}
+                className="text-gray-400 hover:text-gray-700 text-xs font-bold cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+            <form onSubmit={handleTriggerJobSubmit} className="p-5 space-y-4 text-xs">
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] leading-relaxed">
+                <strong>Distributed Lock Guarantee:</strong> This job executes under a temporary distributed lock (TTL 900s). Concurrent runs on the same job and market tenant are rejected with HTTP 409 Conflict.
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-1">Allowlisted Job Type</label>
+                <select
+                  value={targetJobType}
+                  onChange={(e) => setTargetJobType(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg bg-white font-mono"
+                >
+                  <option value="RECURRING_BILLING">RECURRING_BILLING (Billing Cycle &amp; Invoices)</option>
+                  <option value="OVERDUE_DUNNING">OVERDUE_DUNNING (Aging &amp; Dunning Escalation)</option>
+                  <option value="OUTBOX_DISPATCH">OUTBOX_DISPATCH (Transactional Notification Outbox)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-1">Target Market Scope</label>
+                <select
+                  value={targetJobMarket}
+                  onChange={(e) => setTargetJobMarket(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg bg-white"
+                >
+                  <option value="all">All Markets (Global Tenant Scope)</option>
+                  <option value="mumbai">Mumbai</option>
+                  <option value="kolkata">Kolkata</option>
+                  <option value="delhi">Delhi</option>
+                  <option value="bangalore">Bangalore</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowTriggerJobModal(false)}
+                  className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  {actionLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-white" />}
+                  <span>{actionLoading ? 'Executing...' : 'Execute Now'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: JOB EXECUTION DETAIL & RECONCILIATION ─── */}
+      {showRunDetailModal && selectedRunDetail && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden modal-shadow">
+            <div className="bg-slate-50 border-b border-gray-200 p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-indigo-600" />
+                <h3 className="text-sm font-bold text-gray-900">Job Execution Run Details</h3>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  selectedRunDetail.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
+                  selectedRunDetail.status === 'FAILED' ? 'bg-rose-100 text-rose-800' :
+                  selectedRunDetail.status === 'RECONCILED' ? 'bg-indigo-100 text-indigo-800' :
+                  'bg-slate-200 text-slate-800'
+                }`}>
+                  {selectedRunDetail.status}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setShowRunDetailModal(false);
+                  setSelectedRunDetail(null);
+                }}
+                className="text-gray-400 hover:text-gray-700 text-xs font-bold cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4 text-xs font-sans">
+              {/* Summary Grid */}
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div>
+                  <div className="text-gray-400 text-[10px]">Job Type</div>
+                  <div className="font-mono font-bold text-gray-900 mt-0.5">{selectedRunDetail.job_type}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-[10px]">Target Market</div>
+                  <div className="font-mono font-bold text-gray-900 mt-0.5 uppercase">{selectedRunDetail.market_id || 'ALL'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-[10px]">Start Time</div>
+                  <div className="text-gray-700 mt-0.5">{new Date(selectedRunDetail.start_time).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-[10px]">Duration</div>
+                  <div className="font-mono font-bold text-gray-900 mt-0.5">
+                    {selectedRunDetail.duration_seconds !== null ? `${selectedRunDetail.duration_seconds} seconds` : 'In progress...'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-[10px]">Processed / Succeeded</div>
+                  <div className="font-mono font-bold text-gray-900 mt-0.5">
+                    {selectedRunDetail.records_succeeded} / {selectedRunDetail.records_processed}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-[10px]">Attempt Count</div>
+                  <div className="font-mono font-bold text-gray-900 mt-0.5">{selectedRunDetail.attempt_count}</div>
+                </div>
+              </div>
+
+              {/* Error Details if FAILED */}
+              {selectedRunDetail.error_details && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-xs text-rose-700">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Failure Diagnostic (Sanitized)</span>
+                  </div>
+                  <pre className="text-[11px] font-mono whitespace-pre-wrap break-all text-rose-800 bg-rose-100/50 p-2 rounded">
+                    {selectedRunDetail.error_details}
+                  </pre>
+                </div>
+              )}
+
+              {/* Execution Metrics & Metadata JSON */}
+              <div>
+                <div className="text-gray-500 font-bold mb-1 uppercase text-[10px] tracking-wider">Execution Metrics &amp; Metadata</div>
+                <pre className="p-3 rounded-xl bg-slate-900 text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-48 border border-slate-800">
+                  {JSON.stringify(selectedRunDetail.summary_metadata || {}, null, 2)}
+                </pre>
+              </div>
+
+              {/* Safe Operator Reconciliation Form (for FAILED or RUNNING runs) */}
+              {(selectedRunDetail.status === 'FAILED' || selectedRunDetail.status === 'RUNNING') && !isReadOnly && (
+                <div className="pt-3 border-t border-gray-200 space-y-3">
+                  <div className="flex items-center gap-1.5 text-amber-700 font-bold text-xs">
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Safe Operator Recovery &amp; Reconciliation</span>
+                  </div>
+                  <div>
+                    <label className="block text-gray-600 text-[11px] mb-1">Intervention Reason / Notes</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Cleared stuck worker lock after network restart"
+                      value={reconcileReason}
+                      onChange={(e) => setReconcileReason(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-lg text-xs"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleReconcileRunAction(selectedRunDetail.id, 'RECONCILE')}
+                      disabled={actionLoading}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50"
+                    >
+                      Reconcile &amp; Clear Lock
+                    </button>
+                    <button
+                      onClick={() => handleReconcileRunAction(selectedRunDetail.id, 'RETRY')}
+                      disabled={actionLoading}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50"
+                    >
+                      Safe Idempotent Retry
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

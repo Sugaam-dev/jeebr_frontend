@@ -48,6 +48,8 @@ const FieldOperations = lazyNamed(() => import('./pages/field-operations/FieldOp
 const RoleManagement = lazyNamed(() => import('./pages/admin/RoleManagement'), 'RoleManagement');
 const NocTrackingMap = lazyNamed(() => import('./pages/noc/NocTrackingMap'), 'NocTrackingMap');
 const FinanceManagement = lazyNamed(() => import('./pages/finance/FinanceManagement'), 'FinanceManagement');
+const InventoryManagement = lazyNamed(() => import('./pages/inventory/InventoryManagement'), 'InventoryManagement');
+const TariffManagement = lazyNamed(() => import('./pages/tariffs/TariffManagement'), 'TariffManagement');
 
 // Minimal accessible loader for lazy chunks
 const PageLoader = () => (
@@ -174,6 +176,8 @@ export default function App() {
                 <Route path="/dashboard/noc-tracking" element={<NocTrackingMap />} />
                 {/* SentinelOS Enterprise Finance & Billing Management */}
                 <Route path="/dashboard/finance" element={<FinanceManagement />} />
+                <Route path="/dashboard/inventory" element={<InventoryManagement />} />
+                <Route path="/dashboard/tariffs" element={<TariffManagement />} />
 
                 {/* Seamless Backwards-Compatibility Aliases */}
                 <Route path="/cockpit" element={<Navigate to="/dashboard/cockpit" replace />} />
@@ -187,6 +191,8 @@ export default function App() {
                 <Route path="/customer360" element={<Navigate to="/dashboard/customer360" replace />} />
                 <Route path="/customers" element={<Navigate to="/dashboard/customer360" replace />} />
                 <Route path="/provisioning" element={<Navigate to="/dashboard/provisioning" replace />} />
+                <Route path="/inventory" element={<Navigate to="/dashboard/inventory" replace />} />
+                <Route path="/tariffs" element={<Navigate to="/dashboard/tariffs" replace />} />
                 <Route path="/ticketing" element={<Navigate to="/dashboard/ticketing" replace />} />
                 <Route path="/field-operations" element={<Navigate to="/dashboard/field-operations" replace />} />
                 <Route path="/roles" element={<Navigate to="/dashboard/roles" replace />} />
