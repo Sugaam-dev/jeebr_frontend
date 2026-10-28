@@ -57,8 +57,9 @@ export const CrmVouchersView = ({ onOpen360 }) => {
   const handleIssueVoucher = async (e) => {
     e.preventDefault();
     if (isReadOnly) return;
-    if (!issueCustomerId) {
-      setIssueError('Customer ID is required.');
+    const cleanId = String(issueCustomerId || '').trim();
+    if (!cleanId) {
+      setIssueError('Customer identifier (code or database ID) is required.');
       return;
     }
 
@@ -67,11 +68,16 @@ export const CrmVouchersView = ({ onOpen360 }) => {
     setIssueSuccess(null);
 
     try {
-      const res = await api.issueCustomerVoucher(issueCustomerId, issueType);
+      const res = await api.issueCustomerVoucher(cleanId, issueType);
       setIssueSuccess(res);
       loadVouchers();
     } catch (err) {
-      setIssueError(err.message || 'Failed to issue courtesy voucher.');
+      console.error('Courtesy voucher issuance failed:', err);
+      if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
+        setIssueError(`Validation error: ${Object.entries(err.fieldErrors).map(([k, v]) => `${k} (${v})`).join(', ')}`);
+      } else {
+        setIssueError(err.message || 'Failed to issue courtesy voucher.');
+      }
     } finally {
       setIssueLoading(false);
     }
@@ -272,12 +278,16 @@ export const CrmVouchersView = ({ onOpen360 }) => {
 
             <form onSubmit={handleIssueVoucher} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-gray-700 mb-1">Target Customer ID</label>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Target Customer Code or ID <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
+                  required
+                  aria-required="true"
                   value={issueCustomerId}
                   onChange={(e) => setIssueCustomerId(e.target.value)}
-                  placeholder="e.g. 1"
+                  placeholder="e.g. SUB-MUM-100001 or 1"
                   className="w-full px-3 py-2 rounded-xl border border-gray-200 font-mono text-xs focus:outline-none focus:border-blue-500"
                 />
               </div>

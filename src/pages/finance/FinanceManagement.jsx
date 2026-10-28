@@ -382,14 +382,32 @@ export const FinanceManagement = () => {
   const handleCreateAccount = async (e) => {
     e.preventDefault();
     if (isReadOnly) return;
+    if (!newAccountForm.customer_id.trim()) {
+      setErrorMsg('Customer ID / code is required to establish billing account.');
+      return;
+    }
     setActionLoading(true);
+    setErrorMsg('');
     try {
-      const res = await api.createBillingAccount(newAccountForm);
-      setSuccessMsg(`Billing Account ${res.account_code} created successfully.`);
+      const payload = {
+        customer_id: newAccountForm.customer_id.trim(),
+        billing_type: newAccountForm.account_type,
+        account_type: newAccountForm.account_type,
+        credit_limit: parseFloat(newAccountForm.credit_limit) || 0.0,
+        currency: newAccountForm.currency || 'INR',
+        market_id: currentMarket === 'all' ? undefined : currentMarket
+      };
+      const res = await api.createBillingAccount(payload);
+      setSuccessMsg(`Billing Account ${res.account_code || res.account_number} created successfully.`);
       setShowCreateAccountModal(false);
       loadData(true);
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to create billing account');
+      console.error('Account creation failed:', err);
+      if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
+        setErrorMsg(`Validation error: ${Object.entries(err.fieldErrors).map(([k, v]) => `${k} (${v})`).join(', ')}`);
+      } else {
+        setErrorMsg(err.message || 'Failed to create billing account');
+      }
     } finally {
       setActionLoading(false);
     }
@@ -428,14 +446,33 @@ export const FinanceManagement = () => {
   const handleIssueInvoice = async (e) => {
     e.preventDefault();
     if (isReadOnly) return;
+    if (!issueInvoiceForm.subscription_id.trim()) {
+      setErrorMsg('Subscription ID / code is required to issue invoice.');
+      return;
+    }
+    if (parseFloat(issueInvoiceForm.discount_amount) < 0) {
+      setErrorMsg('Authorized discount cannot be negative.');
+      return;
+    }
     setActionLoading(true);
+    setErrorMsg('');
     try {
-      const res = await api.issueInvoice(issueInvoiceForm);
-      setSuccessMsg(`Invoice ${res.invoice_code} generated for ₹${res.total_amount.toLocaleString()}.`);
+      const payload = {
+        subscription_id: issueInvoiceForm.subscription_id.trim(),
+        discount_amount: parseFloat(issueInvoiceForm.discount_amount) || 0.0,
+        notes: issueInvoiceForm.notes?.trim() || undefined
+      };
+      const res = await api.issueInvoice(payload);
+      setSuccessMsg(`Invoice ${res.invoice_code} generated for ₹${Number(res.total_amount).toLocaleString()}.`);
       setShowIssueInvoiceModal(false);
       loadData(true);
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to generate invoice');
+      console.error('Invoice issuance failed:', err);
+      if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
+        setErrorMsg(`Validation error: ${Object.entries(err.fieldErrors).map(([k, v]) => `${k} (${v})`).join(', ')}`);
+      } else {
+        setErrorMsg(err.message || 'Failed to generate invoice');
+      }
     } finally {
       setActionLoading(false);
     }

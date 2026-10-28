@@ -66,12 +66,12 @@ export const CustomerBilling = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Invoice-${invoice.invoice_number || invoice.id}.pdf`;
+      a.download = `Invoice-${invoice.invoice_code || invoice.invoice_number || invoice.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success(`Downloaded Invoice ${invoice.invoice_number}`);
+      toast.success(`Downloaded Invoice ${invoice.invoice_code || invoice.invoice_number || invoice.id}`);
     } catch (err) {
       console.error('PDF download failed:', err);
       toast.error('Failed to download invoice PDF. Please try again.');
@@ -382,7 +382,7 @@ export const CustomerBilling = () => {
                 {invoices.map((inv) => (
                   <tr key={inv.id} className="hover:bg-slate-50/70 transition">
                     <td className="py-4 px-6 font-mono font-bold text-slate-800">
-                      {inv.invoice_number || inv.id.substring(0, 8)}
+                      {inv.invoice_code || inv.invoice_number || (inv.id != null ? String(inv.id).slice(0, 8) : 'INV')}
                     </td>
                     <td className="py-4 px-4 text-slate-600">
                       {formatDate(inv.created_at || inv.due_date)}
@@ -473,7 +473,7 @@ export const CustomerBilling = () => {
                 {payments.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/70 transition">
                     <td className="py-4 px-6 font-mono font-bold text-slate-800">
-                      {p.payment_number || p.reference_id || p.id.substring(0, 8)}
+                      {p.payment_reference || p.payment_number || p.reference_id || (p.id != null ? String(p.id).slice(0, 8) : 'PAY')}
                     </td>
                     <td className="py-4 px-4 text-slate-600">
                       {formatDate(p.payment_date || p.created_at)}
@@ -518,7 +518,7 @@ export const CustomerBilling = () => {
             <div className="bg-slate-900 p-6 text-white flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">Online Payment Checkout</h3>
-                <p className="text-xs text-slate-400">Invoice: {selectedInvoice.invoice_number}</p>
+                <p className="text-xs text-slate-400">Invoice: {selectedInvoice.invoice_code || selectedInvoice.invoice_number || selectedInvoice.id}</p>
               </div>
               <button
                 onClick={() => setIsPayModalOpen(false)}

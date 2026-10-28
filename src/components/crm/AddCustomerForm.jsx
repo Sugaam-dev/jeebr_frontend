@@ -25,7 +25,7 @@ export const AddCustomerForm = ({ onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     customer_number: '',
     legal_name: '',
-    account_type: 'INDIVIDUAL',
+    account_type: 'RESIDENTIAL',
     phone: '',
     email: '',
     address_line1: '',
@@ -98,13 +98,26 @@ export const AddCustomerForm = ({ onSuccess, onCancel }) => {
     setLoading(true);
     setError('');
 
+    const hasAddress = Boolean(formData.address_line1.trim());
+    const installationAddress = hasAddress ? {
+      address_line1: formData.address_line1.trim(),
+      address_line2: formData.address_line2.trim() || undefined,
+      city: formData.city.trim() || marketConfig?.city || 'Mumbai',
+      state: formData.state.trim() || marketConfig?.state || 'Maharashtra',
+      postal_code: formData.postal_code.trim() || '400001',
+      latitude: formData.latitude ? Number(formData.latitude) : undefined,
+      longitude: formData.longitude ? Number(formData.longitude) : undefined,
+      address_type: 'INSTALLATION'
+    } : undefined;
+
     const payload = {
       legal_name: formData.legal_name.trim(),
       customer_number: formData.customer_number.trim() || undefined,
-      account_type: formData.account_type,
+      account_type: formData.account_type === 'INDIVIDUAL' ? 'RESIDENTIAL' : formData.account_type,
       phone: formData.phone.trim(),
       email: formData.email.trim(),
       market_id: currentMarket,
+      installation_address: installationAddress,
       address_line1: formData.address_line1.trim() || undefined,
       address_line2: formData.address_line2.trim() || undefined,
       city: formData.city.trim() || marketConfig?.city || 'Mumbai',
@@ -122,6 +135,9 @@ export const AddCustomerForm = ({ onSuccess, onCancel }) => {
       }
     } catch (err) {
       console.error('Customer creation failed:', err);
+      if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
+        setValidationErrors((prev) => ({ ...prev, ...err.fieldErrors }));
+      }
       if (err.status === 409) {
         setError(err.message || 'Duplicate conflict: A customer with this customer number or active identity (phone + email) already exists in this market.');
       } else {
@@ -178,7 +194,7 @@ export const AddCustomerForm = ({ onSuccess, onCancel }) => {
               setFormData({
                 customer_number: '',
                 legal_name: '',
-                account_type: 'INDIVIDUAL',
+                account_type: 'RESIDENTIAL',
                 phone: '',
                 email: '',
                 address_line1: '',
@@ -307,9 +323,10 @@ export const AddCustomerForm = ({ onSuccess, onCancel }) => {
                 value={formData.account_type}
                 onChange={handleChange}
                 disabled={isReadOnly || loading}
+                aria-required="true"
                 className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100 font-medium"
               >
-                <option value="INDIVIDUAL">INDIVIDUAL (Retail Consumer)</option>
+                <option value="RESIDENTIAL">RESIDENTIAL (Retail Consumer)</option>
                 <option value="ENTERPRISE">ENTERPRISE (High-Capacity Fiber / ILL)</option>
                 <option value="SME">SME (Small &amp; Medium Business)</option>
               </select>

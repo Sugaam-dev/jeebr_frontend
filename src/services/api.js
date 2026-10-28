@@ -69,20 +69,43 @@ async function handleResponse(res) {
   }
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    const USER_MESSAGES = {
-      401: 'Your session has expired. Please sign in again.',
-      403: "You don't have permission to access this resource.",
-      404: 'The requested record was not found.',
-      409: typeof errorData.detail === 'object' && errorData.detail?.message 
-        ? errorData.detail.message 
-        : (typeof errorData.detail === 'string' ? errorData.detail : 'Action conflict: Resource is at capacity or conflicting state.'),
-      400: typeof errorData.detail === 'string' ? errorData.detail : 'The request could not be completed.',
-      500: 'A server error occurred. Please try again shortly.',
-    };
-    const friendlyMessage = USER_MESSAGES[res.status] || (typeof errorData.detail === 'string' ? errorData.detail : `Request failed (${res.status})`);
+    let fieldErrors = {};
+    if (errorData.field_errors && typeof errorData.field_errors === 'object') {
+      fieldErrors = { ...errorData.field_errors };
+    } else if (Array.isArray(errorData.detail)) {
+      for (const item of errorData.detail) {
+        const loc = item.loc || [];
+        const field = loc.length > 0 ? String(loc[loc.length - 1]) : 'general';
+        fieldErrors[field] = item.msg || 'Invalid field';
+      }
+    }
+
+    let friendlyMessage = '';
+    if (res.status === 422) {
+      if (Object.keys(fieldErrors).length > 0) {
+        friendlyMessage = `Validation failed: ${Object.entries(fieldErrors).map(([k, v]) => `${k}: ${v}`).join('; ')}`;
+      } else {
+        friendlyMessage = typeof errorData.detail === 'string' ? errorData.detail : 'Validation error: invalid request payload.';
+      }
+    } else {
+      const USER_MESSAGES = {
+        401: 'Your session has expired. Please sign in again.',
+        403: "You don't have permission to access this resource.",
+        404: typeof errorData.detail === 'string' ? errorData.detail : 'The requested record was not found.',
+        409: typeof errorData.detail === 'object' && errorData.detail?.message 
+          ? errorData.detail.message 
+          : (typeof errorData.detail === 'string' ? errorData.detail : 'Action conflict: Resource is at capacity or conflicting state.'),
+        400: typeof errorData.detail === 'string' ? errorData.detail : 'The request could not be completed.',
+        429: 'Rate limit exceeded. Please wait a moment and try again.',
+        500: 'A server error occurred. Please try again shortly.',
+      };
+      friendlyMessage = USER_MESSAGES[res.status] || (typeof errorData.detail === 'string' ? errorData.detail : `Request failed (${res.status})`);
+    }
+
     const err = new Error(friendlyMessage);
     err.status = res.status;
     err.data = errorData;
+    err.fieldErrors = fieldErrors;
     throw err;
   }
   return res.json();

@@ -46,7 +46,7 @@ export const CrmMapView = ({ onOpen360 }) => {
 
   // Transform verified customer locations into markers for MapContainer
   const customerMarkers = verifiedLocations.map((loc) => ({
-    id: `cust-${loc.customer_id}`,
+    id: `cust-${loc.id || loc.customer_id || loc.customer_code}`,
     position: { lat: loc.latitude, lng: loc.longitude },
     title: loc.name,
     customer_code: loc.customer_code,
@@ -226,7 +226,7 @@ export const CrmMapView = ({ onOpen360 }) => {
 
               {onOpen360 && (
                 <button
-                  onClick={() => onOpen360(selectedCustomer.customer_id)}
+                  onClick={() => onOpen360(selectedCustomer.id || selectedCustomer.customer_id || selectedCustomer.customer_code)}
                   className="w-full mt-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <span>Open Customer 360</span>
@@ -266,7 +266,7 @@ export const CrmMapView = ({ onOpen360 }) => {
               </thead>
               <tbody className="divide-y divide-gray-100 font-sans">
                 {pendingLocations.map((loc) => (
-                  <tr key={loc.customer_id} className="hover:bg-amber-50/30 transition-colors">
+                  <tr key={loc.id || loc.customer_code || loc.customer_id} className="hover:bg-amber-50/30 transition-colors">
                     <td className="px-4 py-2.5 font-mono font-bold text-gray-900">
                       {loc.customer_code}
                     </td>
@@ -285,7 +285,7 @@ export const CrmMapView = ({ onOpen360 }) => {
                     <td className="px-4 py-2.5 text-right">
                       {onOpen360 && (
                         <button
-                          onClick={() => onOpen360(loc.customer_id)}
+                          onClick={() => onOpen360(loc.id || loc.customer_code || loc.customer_id)}
                           className="text-blue-600 hover:underline font-semibold text-[11px] cursor-pointer inline-flex items-center gap-0.5"
                         >
                           <span>Profile</span>

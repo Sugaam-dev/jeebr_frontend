@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { Validators, formatMaskedAadhaar } from '../../utils/validation';
 import { 
   Users, 
   MapPin, 
@@ -76,7 +77,7 @@ export const CrmContactsModal = ({ customerId, customerName, isOpen, onClose }) 
   // KYC Document form state
   const [showUploadDoc, setShowUploadDoc] = useState(false);
   const [docForm, setDocForm] = useState({
-    document_type: 'AADHAAR',
+    document_type: 'AADHAAR_MASKED',
     document_identifier: '',
     file: null
   });
@@ -301,6 +302,21 @@ export const CrmContactsModal = ({ customerId, customerName, isOpen, onClose }) 
       return;
     }
 
+    let identifierToSubmit = docForm.document_identifier.trim();
+    if (docForm.document_type === 'AADHAAR_MASKED' && identifierToSubmit) {
+      const cleanDigits = identifierToSubmit.replace(/[\s-]/g, '');
+      if (/^\d{12}$/.test(cleanDigits)) {
+        // Auto-mask first 8 digits
+        identifierToSubmit = `XXXX-XXXX-${cleanDigits.slice(8)}`;
+      } else {
+        const maskedErr = Validators.maskedAadhaar()(identifierToSubmit);
+        if (maskedErr) {
+          setError(maskedErr);
+          return;
+        }
+      }
+    }
+
     setLoading(true);
     setError('');
     setSuccessMsg('');
@@ -309,14 +325,14 @@ export const CrmContactsModal = ({ customerId, customerName, isOpen, onClose }) 
       const fd = new FormData();
       fd.append('file', docForm.file);
       fd.append('document_type', docForm.document_type);
-      if (docForm.document_identifier.trim()) {
-        fd.append('document_identifier', docForm.document_identifier.trim());
+      if (identifierToSubmit) {
+        fd.append('document_identifier', identifierToSubmit);
       }
 
       await api.uploadCustomerDocument(customerId, fd);
       setShowUploadDoc(false);
       setDocForm({
-        document_type: 'AADHAAR',
+        document_type: 'AADHAAR_MASKED',
         document_identifier: '',
         file: null
       });
@@ -984,29 +1000,35 @@ export const CrmContactsModal = ({ customerId, customerName, isOpen, onClose }) 
                         onChange={(e) => setDocForm({ ...docForm, document_type: e.target.value })}
                         className="w-full px-2.5 py-1.5 border rounded-lg bg-white"
                       >
-                        <option value="AADHAAR">Aadhaar Card (Unique Identification)</option>
+                        <option value="AADHAAR_MASKED">Aadhaar Card (Masked)</option>
                         <option value="PAN">PAN Card (Tax Identification)</option>
-                        <option value="GSTIN">GSTIN Certificate (Commercial)</option>
-                        <option value="PASSPORT">Passport</option>
-                        <option value="VOTER_ID">Voter ID Card</option>
-                        <option value="DRIVING_LICENSE">Driving License</option>
-                        <option value="UTILITY_BILL">Utility / Electricity Bill (Premises)</option>
+                        <option value="INCORPORATION_CERT">Certificate of Incorporation</option>
                         <option value="LEASE_AGREEMENT">Registered Lease Agreement</option>
-                        <option value="CERT_INCORPORATION">Certificate of Incorporation</option>
-                        <option value="BOARD_RESOLUTION">Board Resolution</option>
-                        <option value="OTHER">Other Proof</option>
+                        <option value="VOTER_ID">Voter ID Card</option>
+                        <option value="PASSPORT">Passport</option>
+                        <option value="DRIVING_LICENSE">Driving License</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-gray-600 mb-1">Document Identifier (Auto-Masked)</label>
+                      <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                        Document Identifier {docForm.document_type === 'AADHAAR_MASKED' ? '(Masked: XXXX-XXXX-1234)' : '(Masked)'}
+                      </label>
                       <input
                         type="text"
                         value={docForm.document_identifier}
                         onChange={(e) => setDocForm({ ...docForm, document_identifier: e.target.value })}
-                        className="w-full px-2.5 py-1.5 border rounded-lg font-mono"
-                        placeholder="e.g. 5432-1234-9876 or ABCDE1234F"
+                        onBlur={(e) => {
+                          if (docForm.document_type === 'AADHAAR_MASKED') {
+                            setDocForm({ ...docForm, document_identifier: formatMaskedAadhaar(e.target.value) });
+                          }
+                        }}
+                        className="w-full px-2.5 py-1.5 border rounded-lg font-mono text-xs"
+                        placeholder={docForm.document_type === 'AADHAAR_MASKED' ? 'XXXX-XXXX-1234' : 'e.g. ABCDE1234F'}
                       />
+                      {docForm.document_type === 'AADHAAR_MASKED' && (
+                        <p className="text-[10px] text-gray-500 mt-0.5">First 8 digits must be masked with X (e.g. XXXX-XXXX-1234)</p>
+                      )}
                     </div>
                   </div>
 
@@ -1049,6 +1071,7 @@ export const CrmContactsModal = ({ customerId, customerName, isOpen, onClose }) 
                     const statusBadge = {
                       'VERIFIED': 'bg-emerald-100 text-emerald-800 border-emerald-200',
                       'REJECTED': 'bg-rose-100 text-rose-800 border-rose-200',
+                      'PENDING': 'bg-amber-100 text-amber-800 border-amber-200',
                       'PENDING_VERIFICATION': 'bg-amber-100 text-amber-800 border-amber-200'
                     }[doc.verification_status] || 'bg-slate-100 text-slate-700 border-slate-200';
 
@@ -1086,7 +1109,7 @@ export const CrmContactsModal = ({ customerId, customerName, isOpen, onClose }) 
                             <Download className="w-4 h-4" />
                           </button>
 
-                          {!isReadOnly && doc.verification_status === 'PENDING_VERIFICATION' && (
+                          {!isReadOnly && ['PENDING', 'PENDING_VERIFICATION'].includes(doc.verification_status) && (
                             <>
                               <button
                                 onClick={() => handleVerifyDocument(doc.id, 'VERIFIED')}

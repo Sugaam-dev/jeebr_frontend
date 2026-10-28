@@ -320,14 +320,15 @@ export const ServiceActivationModal = ({
                     </div>
 
                     {/* Blocking Errors */}
-                    {eligibility.blocking_reasons && eligibility.blocking_reasons.length > 0 && (
+                    {((eligibility.blocking_reasons && eligibility.blocking_reasons.length > 0) ||
+                      (eligibility.blocking_errors && eligibility.blocking_errors.length > 0)) && (
                       <div className="mt-2 p-2.5 bg-rose-100/80 rounded-xl border border-rose-300 text-rose-900 text-xs">
                         <div className="font-bold flex items-center gap-1.5 mb-1">
                           <AlertTriangle className="w-3.5 h-3.5 text-rose-700" />
                           Blocking Prerequisites:
                         </div>
                         <ul className="list-disc list-inside space-y-0.5 text-[11px]">
-                          {eligibility.blocking_reasons.map((r, i) => (
+                          {(eligibility.blocking_reasons || eligibility.blocking_errors).map((r, i) => (
                             <li key={i}>{r}</li>
                           ))}
                         </ul>

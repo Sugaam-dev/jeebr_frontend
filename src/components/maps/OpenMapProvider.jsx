@@ -307,12 +307,14 @@ export const OpenMapProvider = ({
   networkLayers = null,
   selectedDevice = null,
   onSelectDevice = null,
+  markers = [],
 }) => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef({}); // engineerId → maplibre Marker
   const customerMarkersRef = useRef({}); // jobId → maplibre Marker
   const networkMarkersRef = useRef({}); // deviceKey → maplibre Marker
+  const genericMarkersRef = useRef({}); // generic marker id → maplibre Marker
   const popupRef = useRef(null);
   const [mapError, setMapError] = useState(null);
   const [mapReady, setMapReady] = useState(false);
@@ -378,6 +380,8 @@ export const OpenMapProvider = ({
       markersRef.current = {};
       Object.values(customerMarkersRef.current).forEach(m => m.remove());
       customerMarkersRef.current = {};
+      Object.values(genericMarkersRef.current).forEach(m => m.remove());
+      genericMarkersRef.current = {};
       if (popupRef.current) {
         popupRef.current.remove();
         popupRef.current = null;
@@ -517,6 +521,51 @@ export const OpenMapProvider = ({
     });
   }, [mapReady, isCustomerView, jobs, layerVisibility.customers]);
 
+  // ── Generic Markers (e.g. from CrmMapView or location explorer) ────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || isCustomerView || !markers || markers.length === 0) return;
+
+    const seenIds = new Set();
+    markers.forEach((m, idx) => {
+      const pos = m.position || (m.lat && m.lng ? { lat: m.lat, lng: m.lng } : null);
+      if (!pos || !pos.lat || !pos.lng) return;
+      const markerId = m.id || `marker-${idx}`;
+      seenIds.add(markerId);
+
+      if (genericMarkersRef.current[markerId]) {
+        genericMarkersRef.current[markerId].setLngLat([pos.lng, pos.lat]);
+      } else {
+        const el = document.createElement('div');
+        const color = m.iconColor || '#2563EB';
+        el.style.cssText = `
+          width: 22px; height: 22px; border-radius: 50%;
+          background: ${color}; border: 2px solid #fff;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.35); cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+        `;
+        if (m.title) el.title = m.title;
+        if (m.onClick) {
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            m.onClick();
+          });
+        }
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([pos.lng, pos.lat])
+          .addTo(map);
+        genericMarkersRef.current[markerId] = marker;
+      }
+    });
+
+    Object.keys(genericMarkersRef.current).forEach((id) => {
+      if (!seenIds.has(id)) {
+        genericMarkersRef.current[id].remove();
+        delete genericMarkersRef.current[id];
+      }
+    });
+  }, [mapReady, isCustomerView, markers]);
+
   // ── Route Layer (from pre-computed waypoints or jobs) ─────────────────────
   useEffect(() => {
     const map = mapRef.current;
@@ -571,7 +620,7 @@ export const OpenMapProvider = ({
         source: 'noc-route-source',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': ['match', ['get', 'status'],
+          'line-color': ['match', ['coalesce', ['get', 'status'], ''],
             'EN_ROUTE', '#38BDF8',
             'ARRIVED', '#34D399',
             'WORKING', '#10B981',

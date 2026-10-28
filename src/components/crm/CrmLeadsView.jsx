@@ -46,7 +46,7 @@ export const CrmLeadsView = ({ onOpen360 }) => {
     company_name: '',
     email: '',
     phone: '',
-    account_type: 'INDIVIDUAL',
+    account_type: 'RESIDENTIAL',
     estimated_mrr: 1500
   });
 
@@ -76,8 +76,21 @@ export const CrmLeadsView = ({ onOpen360 }) => {
   const handleCreateLead = async (e) => {
     e.preventDefault();
     if (isReadOnly) return;
+
+    const fullName = `${leadForm.first_name.trim()} ${leadForm.last_name.trim()}`.trim();
+    const legalName = leadForm.company_name.trim() || fullName;
+    if (!legalName || legalName.length < 2) {
+      setNewLeadError('Customer / Legal name is required (enter First & Last name or Company name, min 2 chars).');
+      return;
+    }
+
     if (!leadForm.phone.trim() && !leadForm.email.trim()) {
-      setNewLeadError('At least phone or email is required.');
+      setNewLeadError('At least phone number or email address is required.');
+      return;
+    }
+
+    if (leadForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadForm.email.trim())) {
+      setNewLeadError('Enter a valid email address.');
       return;
     }
 
@@ -85,14 +98,18 @@ export const CrmLeadsView = ({ onOpen360 }) => {
     setNewLeadError('');
 
     try {
+      const accountType = leadForm.account_type === 'INDIVIDUAL' ? 'RESIDENTIAL' : leadForm.account_type;
       await api.createLead({
+        legal_name: legalName,
+        trade_name: leadForm.company_name.trim() ? fullName || undefined : undefined,
+        company_name: leadForm.company_name.trim() || undefined,
         first_name: leadForm.first_name.trim() || undefined,
         last_name: leadForm.last_name.trim() || undefined,
-        company_name: leadForm.company_name.trim() || undefined,
         email: leadForm.email.trim() || undefined,
         phone: leadForm.phone.trim() || undefined,
-        account_type: leadForm.account_type,
+        account_type: accountType,
         estimated_mrr: Number(leadForm.estimated_mrr) || undefined,
+        notes: leadForm.estimated_mrr ? `Estimated MRR: ₹${leadForm.estimated_mrr}` : undefined,
         market_id: currentMarket
       });
       setShowCreateModal(false);
@@ -102,12 +119,17 @@ export const CrmLeadsView = ({ onOpen360 }) => {
         company_name: '',
         email: '',
         phone: '',
-        account_type: 'INDIVIDUAL',
+        account_type: 'RESIDENTIAL',
         estimated_mrr: 1500
       });
       loadLeads();
     } catch (err) {
-      setNewLeadError(err.message || 'Failed to capture lead.');
+      console.error('Lead creation failed:', err);
+      if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
+        setNewLeadError(`Validation error: ${Object.entries(err.fieldErrors).map(([k, v]) => `${k} (${v})`).join(', ')}`);
+      } else {
+        setNewLeadError(err.message || 'Failed to capture lead.');
+      }
     } finally {
       setNewLeadLoading(false);
     }
@@ -463,7 +485,7 @@ export const CrmLeadsView = ({ onOpen360 }) => {
                     onChange={(e) => setLeadForm({ ...leadForm, account_type: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium"
                   >
-                    <option value="INDIVIDUAL">INDIVIDUAL</option>
+                    <option value="RESIDENTIAL">RESIDENTIAL</option>
                     <option value="SME">SME</option>
                     <option value="ENTERPRISE">ENTERPRISE</option>
                   </select>

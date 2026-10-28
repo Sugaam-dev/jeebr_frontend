@@ -53,7 +53,7 @@ export const TariffManagement = () => {
     name: '',
     description: '',
     service_plan_code: '',
-    market_id: 'ALL',
+    market_id: isSuperAdmin ? 'ALL' : (currentMarket || 'mumbai'),
     version: 1,
     billing_type: 'POSTPAID',
     billing_frequency: 'MONTHLY',
@@ -529,9 +529,11 @@ export const TariffManagement = () => {
                     onChange={(e) => setFormData({ ...formData, market_id: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   >
-                    <option value="ALL">ALL Markets</option>
+                    {isSuperAdmin && <option value="ALL">ALL Markets (Global Platform)</option>}
                     <option value="mumbai">Mumbai</option>
                     <option value="kolkata">Kolkata</option>
+                    <option value="delhi">Delhi</option>
+                    <option value="bangalore">Bangalore</option>
                   </select>
                 </div>
               </div>
